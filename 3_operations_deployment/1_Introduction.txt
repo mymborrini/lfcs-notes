@@ -1,0 +1,21 @@
+INTRODUCTION
+
+Linux Boot Process
+A Linux boot process is initiated when the computer is turned on, and it goes through several stages before the user can interact with the system's interface. The process typically starts with the BIOS (Basic Input/Output System) performing a Power-On Self-Test (POST) to check for hardware errors. After that, the boot loader is loaded into memory, which is responsible for loading the operating system kernel.
+
+Once the kernel is loaded, it initializes the system and loads the necessary drivers and modules. The kernel then starts the system's init process, which is responsible for starting the system's services and processes based on the target system configuration. The target system defines the desired behavior of the system during the boot process, and it can be customized as per the user's requirement.
+
+
+What is System Target?
+System target in Linux refers to the specific state or mode in which the operating system is configured. It is responsible for managing various services, processes, and applications that are required for a particular purpose or task.
+The target system helps the user define the desired behavior during the boot process and provides a convenient way to manage the system's functionality. It can be changed or modified per the user's requirement and accessed through various tools and commands provided by the Linux operating system.
+
+
+Below are some of the most common system targets:
+
+rescue		-> 	A basic system in single-user mode with only the most basic services running and rescue shell on the main console
+multi-user	->	All services running, but the command line interface (CLI) only
+graphical	->	Full multiuser with network and display manager
+emergency	->	Single user mode -- no serivces are running: filesystem are not mounted. This is the most basic level of operation with only an emergency shell running on the main console for the user to 			interact with the system. 
+
+

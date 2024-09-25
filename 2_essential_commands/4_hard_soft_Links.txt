@@ -1,0 +1,136 @@
+CREATE AND MANAGE HARD LINKS:
+
+Let's image the computer is sharing between two user aaron and jane. Aaron logs in with his username and password and Jane logs in with her username and password.
+
+Aaron takes a picture of the family and save it under
+
+/home/aaron/Documents/Pictures/family_dog.jpg
+
+With the stat command
+
+$ stat Pictures/family_dog.jpg
+*
+* File: Pictures/family_dog.jpg
+* Size: 49	Blocks: 8	IO Block: 4096 	regular file
+* Device: fd00h/64768d	Inode: 52946177		Links: 1
+* Access: (0640/-rw-r----)	Uid: (1000/aaron)	Gid: (1005? family)
+* Context: unconfined_u:object_r:user_home_t:s0
+* Access: 2021-10-27 16:33:18.99867896 -0500
+* Modify: 2021-10-27 16:41:19.78967863 -0500
+* Change: 2021-10-27 16:33:18.76576789 -0500
+* Birth:  2021-10-26 13:37:17.96787455 -0500
+
+
+Inode: 52946177 => Inside the hard disk the "pieces" of the file can be stored everywhere but the Inode remembers where these "pieces" are stored inside the hard disk. It also keeps track of metadata like permissions and the data access time. Since it's uncomfortable to work with Inodes it's more convenient to work with files. So the file points to the Inode and the Inode points to all the data of that file you required.
+
+Links: 1 => How many links there are to the Inode? 1 just the file we created (aaron/Documents/Pictures/family_dog.jpg). In this case this Inode will be HARD LINK to the file aaron/Documents/Pictures/family_dog.jpg. So the links is the number of hard links created for that Inode. 
+Why should we have more Hard links for this data?
+
+How could aaron shares this picture with jane? The simplests option could be a copy:
+
+cp -r /home/aaron/Documents/Pictures/ /home/jane/Documents/Pictures/
+
+
+
+But let' s image we have 1000 pictures we have to store 2Gi of data twice
+So instead of copying it's better to use an hard-link.
+
+$ ln [path to the target file] [path to link file]
+
+So in the previous case
+
+$ ln /home/aaron/Documents/Pictures/family_dog.jpg /home/jane/Documents/Pictures/family_dog.jpg
+
+
+So the pictures is only stored once, but the same data can be access to another location. When we run stat command again:
+
+
+$ stat Pictures/family_dog.jpg
+*
+* File: Pictures/family_dog.jpg
+* Size: 49	Blocks: 8	IO Block: 4096 	regular file
+* Device: fd00h/64768d	Inode: 52946177		Links: 2
+* Access: (0640/-rw-r----)	Uid: (1000/aaron)	Gid: (1005? family)
+* Context: unconfined_u:object_r:user_home_t:s0
+* Access: 2021-10-27 16:33:18.99867896 -0500
+* Modify: 2021-10-27 16:41:19.78967863 -0500
+* Change: 2021-10-27 16:33:18.76576789 -0500
+* Birth:  2021-10-26 13:37:17.96787455 -0500
+
+We see the links are now 2
+
+Now Let's image that aaron decides to delete its picture:
+
+$ rm /home/aaron/Documents/Pictures/family_dog.jpg
+
+
+What happens to jane image? Nothing.
+Since it's linked to the Inode. The Inode will be removed only when there are no Links to it. 
+
+There are limitations to hardlink:
+- Only hardlink to file, not folders 
+- Only hardlink to files on the same filesystem. (/home/aaron/file -> /mnt/Backups/file) 
+- Make sure that have the right permission (write) for the destination file. This could mean that probably we have to add two user to the same group. 
+
+In the example before something like this:
+
+$ useradd -a -G family aaron
+$ useradd -a -G family jane
+$ chmod 660 /home/aaron/Documents/Pictures/family_dog.jpg
+
+
+
+
+CREATE AND MANAGE SOFT LINKS
+
+
+Image on Windows, you have an application (MyCoolApp) with an icon on your Desktop. When you click on the icon the application will start, of course the application is not installed on your Desktop but probably in C:\Program Files\MyCoolApp\application.exe. So the double click on that icon will redirect to the file  C:\Program Files\MyCoolApp\application.exe.
+
+In Linux is pretty similar, while an Hard Link point to an Inode a soft like is a link that point to a file instead
+
+
+family_dog_shortcut.jpg - - - - - -> family_dog.jpg =========> Inode.
+
+To create a soft link or a SYMBOLIC LINK (they are synonim) 
+
+$ ln -s [path_to_target_file] [path_to_link_file]
+
+
+For example:
+
+$ ln -s /home/aaron/Documents/Pictures/family_dog.jpg family_dog_shortcut.jpg
+
+
+
+Now if we list our files we will see somthing like this:
+
+$ ls -l
+* 
+* lrwxrwxrwx. 1 	aaron 	aaron 	family_dog_shortcut.jpg -> /home/aaron/Documents/Pictures/family_dog.jpg
+
+
+lrwxrwxrwx => the 'l' at the beginning shows us that this is a soft link
+-> /home/aaron/Documents/Pictures/family_dog.jpg display the path where the soft link is poiting to.
+
+
+In order to see the path where a softlink is pointing
+
+$ readlink family_dog_shortcut.jpg
+* /home/aaron/Documents/Pictures/family_dog.jpg
+
+
+N.B.
+1 
+Let's see the following command:
+$ ln -s /home/aaron/Documents/Pictures/family_dog.jpg family_dog_shortcut.jpg
+If we in the future want to rename /home/aaron/Documents/Pictures/family_dog.jpg into /home/aaron/Documents/Images/family_dog.jpg, the symlink will break. 
+Broken link are colored in red in the ls -l command
+
+2
+You can use if you want relative path when defining soft links
+
+
+Advantages of soft links:
+
+- Soft links can be used between folder
+- Soft links can be used between different filesystem (/home/aaron/file -> /mnt/Backups/file) 

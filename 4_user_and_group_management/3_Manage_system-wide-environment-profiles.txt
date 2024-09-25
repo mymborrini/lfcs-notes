@@ -1,0 +1,42 @@
+#MANAGE System-wide Environment Profiles
+
+We can see our current user environment 
+
+$ printenv === env
+# ...
+
+
+What we see here are environment variables. What are they used for? Generally they are sued by BASH, our current login shell. For example HISTSIZE manage the history size, so if it is set to 1000, it will not save more than 1000 commands in the history 
+
+HOME tells app where our home directory is
+
+$HOME, adding a dollar sign in front of a variable dumps the content of that variable in the same spot on the command line. This can be useful in script. Consider that if any user runs its scripts, the HOME variable will differ from user to user.
+
+If a user want to add some user environment variables he cad change this file.
+
+$ cat .bashrc
+
+
+If we want to set some variable to certain value for every user that logs into the system
+
+$ sudo vim /etc/environment
+# KODEKLOUD=https://kodekloud.com
+
+
+This variable will be set anytime a user log in. 
+
+This only set a variable environemnt. What if we want to run a command everytime the user logs in?
+
+first create a file in a special directory:
+
+$ sudo vim /etc/profile.d/lastlogin.sh
+# echo "Your last login was at: " > $HOME/lastlogin
+#
+# date >> $HOME/lastlogin
+
+Now if we login 
+$ cat lastlogin ( a new file is created )
+# Your last login was at: Thursday DEC 16 11:19:27 CDT 2021
+
+
+As you can see in lastlogin.sh we didn't add a shebag. The system already knows that anythinhg found in /etc/prfile.d should be processed by our current shell. 

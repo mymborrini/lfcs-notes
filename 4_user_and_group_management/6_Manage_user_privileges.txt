@@ -1,0 +1,92 @@
+Manage User's privileges
+
+Only super user can make changes in some important areas in the operating system. When we put sudo before a command, the command is executed as we are superuser. So how come our users is allowed to use sudo?
+
+For example if we type the 
+$ groups
+# aaron family wheel
+
+As you can see aaron is part of the wheel command. Whoever is part of this team, is automatically allowed to use sudo. So the easiest way to allow a user to use sudo is to add him to the wheel group
+
+$ sudo gpasswd -a trinity wheel
+
+Now trinity has the power to have privileges, but this does not allow him to do anything in our systemm. 
+
+What if we want to have a more granularity approach? 
+
+There is a file in /etc/sudoers that describes this approach. We won't change this file directly instead we use an utility call visudo. This utiliy can check up our edits are correct tio help us avoid mistakes in the file .
+
+So remove trinity from the wheel group and definiy a custom policy for her later.
+
+$ sudo gpasswd -d trinity wheel
+
+$ sudo visudo (this will open a vi editor)
+...
+## Allows people in group wheel to run all commands
+%wheel	ALL=(ALL)	ALL
+...
+
+Let' break this line into 4 different parts and analyze what they do
+
+%wheel => this is the user or group. Who this policy is for
+ALL= => This is the host. Here we could specify that these rules only apply if our server's hostname or IP address has a specific value. ( Not so useful for our pourpose so we just set 'ALL')
+(ALL) => Run as field. Here we could type a list of usernames. Sudo allows us to run a command as root, but allows us also to run command as different user, so for example aaron can run commands as Jane and vice-versa.
+
+
+Finally the fourth ALL is the list of command that can be executed with sudo. 
+
+So it Looks like this:
+
+user/grup	host=(run_as_user)	command_list
+
+
+Some examples:
+
+To define a Policy for our Trinity user and allows him to run any sudo command
+
+trinity		ALL=(ALL)	ALL
+
+
+sudo lets us run commands as root but also as non root regular users. So for example if we want to run the ls command as the Trinity user we can run a command like this:
+
+$ sudo -u trinity ls /home/trinity
+
+So... if the third command is all, then this Policy allows someone to run pseudo commands as any user. But if we want to run command only as the user aaron or John we can write a line like this:
+
+$ trinity 	ALL=(aaron,john)	ALL
+
+
+We can Limit the number of command trinity can run like the following 
+
+
+trinity		ALL=(ALL)	/bin/ls, /bin/stat
+
+
+Now Trinity can only run caommnds as 
+$ sudo ls
+$ sudo stat /bin
+
+If you run a command like this:
+
+$ sudo echo "Test Passed?"
+# Sorry, user trinity is not allowed to execute '/bin/echo Test passed?' as root on LFCS-CentOS
+
+
+N.B. The third field is optional so this line:
+
+trinity		ALL=(ALL)	/bin/ls, /bin/stat
+
+is equivalent to this:
+
+trinity		ALL=	/bin/ls, /bin/stat
+
+
+The first time you run a command with sudo the System will ask for a Password. But we can get rid of this requirement.
+Like the following:
+
+trinity		ALL=	NOPASSWD:ALL
+
+
+
+
+

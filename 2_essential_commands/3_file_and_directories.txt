@@ -1,0 +1,162 @@
+Working With Files and Directories
+
+
+LIST:
+
+What is a file system tree? What is an absolute path and what is a relative path? 
+
+We use the 
+\
+$ ls, 
+To list the files and the directories in the current directory. In Linux you can have files or directories which start with a dot '.'. They won't be displayed by a simple ls command they are hidden.
+
+$ ls -a 
+
+Display these files and directories ( -a stays from all)
+
+If you type 
+
+$ ls -l
+* drwxr-xr-x. 	2	root	root	4096	Oct 18	22:52	anaconda
+* -rw-rw----.	1	root	utmp	0	Jun 24	09:21	chrony
+
+Let's analyze the first line:
+
+drwxr-xr-x. => is the permission from file or directory
+root	root => is the user and the group owns each entry
+Oct 18	22:52 => The last modified
+
+
+We can combine -a and -l
+
+$ ls -la
+
+We even have the option of a human readable format (h)
+
+$ ls -alh
+
+
+
+Linux organize the files and directories in a Filesystem Tree:
+
+  			/
+  ---------------------------------------		
+  |					|
+home					var
+|  |------------			|
+|	 	|			log
+aaron		jane
+|
+Documents
+|
+Invoice.pdf
+
+Like a tree we also have root (/), branches, leaf.
+
+/ is the top level directory and no other directories can be above this one. Under this directoriy, there are a lot of more directories like home,var,etc and so on.. Under each one of these subdirectories there are other subdirectories like log.
+
+
+If you take for example Invoice.pdf we have  a file path and a directory path: each of them can be expressed in a different way
+The absolute path and the relative path
+
+ABSOLUTE PATH
+FILE PATH: /home/aaron/documents/Invoice.pdf
+DIRECTORY PATH: /home/aaron/documents/
+
+
+The command
+
+$ pwd
+
+Will Print Working Directory.
+
+To change the current directory we can use the cd command.
+
+$ cd <path>
+
+The path could be the absolute path or the relative path. 
+
+$ cd .. => parent directory 
+
+The cd .. could be used multiple type cd ../..
+
+There are other useful commands:
+
+$ cd / 		# Go to the root directory
+$ cd -		# Go to the previous directory
+$ cd		# Go to your home directory
+
+
+
+
+CREATING
+
+We want to create new file in the current directory
+
+$ touch Receipt.pdf
+
+As always uf you want to create it to another location
+
+$ touch /home/jane/Receipt.pdf
+
+
+If we want to create a new directory
+
+$ mkdir 			# will create new directory
+
+
+
+COPYING
+
+$ cp [source] [destination] 	# Will copy a file from a source to a destination
+
+For example:
+$ cp Receipt.pdf	Receipts/			# This will copy the Receipt.pdf file in the Receipts directory
+$ cp Receipt.pdf	Receipts/ReceiptCopy.pdf	# This will copy the Receipt.pdf file in the Receipts directory and change its name
+
+To copy a directories 
+$ cp -r [source] [destination]	# -r stays from recursive
+
+For example:
+$ cp -r Receipts/	BackupOfReceips/	# This will copy all the files from the Receipts folder to the BackupOfReceipts folder.
+
+N.B. The destination directories MUST NOT exist in the target system
+
+If BackupOfReceips already exists, a new folder named Receipts will be created under BackupOfReceipts so somethinfg like this
+
+
+BackupOfReceips/Receipts/<all the files>.
+
+
+
+MOVING
+
+$ mv [source] [dest]
+
+
+For example
+
+mv Receipts.pdf Receips/
+Will move the Receipts file under the Receipts folder.
+
+
+To rename a file of a directory use the new name as the destination
+
+
+
+DELETE
+
+To remove a file or a directory
+
+$ rm <file-name>
+
+Like always 
+
+$ rm -r <directory-name>
+
+
+
+
+
+
+

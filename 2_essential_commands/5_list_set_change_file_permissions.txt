@@ -1,0 +1,209 @@
+LIST SET CHANGE FILE PERMISSIONS
+
+
+OWNER AND GROUOP
+Before talking about permissions we need to discuss about owner
+
+$ ls -l
+*
+* -rw-r----. 	1	aaron	family	49	Oct 27	14:41	family_dog.jpg
+
+
+AARON As you can see the owner is aaron, only the owner of a file or directory can change permissions, the only exception is the root user. 
+FAMILY The file belongs to a group as well the family group.
+
+To change the group of a file or a directory  CHGRP
+
+$ chgrp group_name file/directory
+
+ For example
+
+$ chgrp wheel family_dog.jpg
+
+We can only change the group, the current user is been part of. To see the groups the user belongs 
+
+$ groups
+*
+* aaron wheel family
+
+
+We can change the owner of a file or a directory  using CHOWN
+
+So in this case
+
+$ chown jane family_dog.jpg
+
+
+
+We can even vhange both user and group with the same command
+
+$ chown aaron:family family_dog.jpg
+
+
+PERMISSION 
+In the example above
+
+-rwxrw-r-- are the permission of a file
+
+The first '-' represents what type the file is: directory (d), link (l), socket file (s), pip (p), block device (b).
+
+The next 9 characters shows permissions:
+
+The first 3 (rwx) are permissions for the owner of the file
+The second 3 (rw-) are permissions for the group of the file
+The third 3 (r--) are permissions for other users. 
+
+
+Bit	Purpose
+r	Read File
+w	Write to file
+x	Execute
+-	No permission
+
+Permissions for file and directories can be slightly different.
+
+Read for a file means that the subject (owner,group, other) can read the content of the file
+Write for a file means that the subject (owner,group, other) can write to the file and modify its content
+Execute for a file means that the subject (owner,group, other) can execute the file. To be able to run a program
+like a shell script this permission is necessary
+
+
+Read for a directory means that the subject (owner,group, other) can read (list) the content of that directory. For example, to make ls Pictures/ needs the read permission.
+ls Pictures/
+
+Write for a directory means that the subject (owner,group, other) can create or delete into the directory. To do a touch file or a mkdir file
+mkdir Pictures/family
+
+Execute for a directory means that the subject (owner,group, other) can execute into this directory
+cd Pictures/
+
+Let's consider the following case
+
+-r--rw---- 	aaron	family
+
+As you can see aaron can only read the file, but aaron belongs to the family group which can write the content in this file. How does linux manage this? Can aaron write to the family?
+
+No he cannot. Permissions are evaluated from left to rigth.
+
+1) Wo try to access the file? Aaron
+2) Wo is the owner? Aaron 
+=> Owner permission is applied. Aaron cannot write the file 
+
+It is not evaluated the permissions of the group because it has already been evaluated as the owner.
+
+Now let's see if jane can modify the content of the file
+
+1) Wo tries to access the file? Jane
+2) Wo owns the file? Aaron
+=> Owner permissions do not apply, move on
+
+3) Is Jane in the family group? The group of the file? Yes
+=> Group permission is applied. Jane can modify the content of the file.
+
+So now that we have seen how permissions works, how can we change it?
+
+
+
+CHANGE PERMISSION
+
+To add opermissioons use CHMOD command
+
+$ chmod permissions file/directory
+
+We specify the permissions in many way 
+
+		Option		Examples
+user 		u+		u+w/u+rw/u+rwx
+group		g+		g+w/g+rw/g+rwx
+others		o+		o+w/o+rw/o+rwx
+
+
+In our case we want to add the right permissions for the owner of the file
+
+chmod u+w family_dog.jpg
+
+
+
+To remove permissions is similar 
+
+		Option		Examples
+user 		u-		u-w/u-rw/u-rwx
+group		g-		g-w/g-rw/g-rwx
+others		o-		o-w/o-rw/o-rwx
+
+
+How set exact permissions without caring the permissions that exists right now?
+
+It's similar again:
+
+		Option		Examples
+user 		u=		u=w/u=rw/u=rwx
+group		g=		g=w/g=rw/g=rwx
+others		o=		o=w/o=rw/o=rwx
+
+To set no permissions use 
+
+$ chmod u= <file-path>
+$ chmod g= <file-path>
+$ chmod o= <file-path>
+
+
+
+We can concatenate all this specification (user, group, others) with a comma
+
+Consider this scenario
+
+$ ls -l
+*
+* -r---------.	aaron	family	49	Oct 27	14:41	family_dog.jpg
+
+user: at least read and write
+group: only read
+others: no permissions
+
+$ chmod u+rw,g=r,o= family_dog.jpg
+
+
+CHMOD supports another way to set permissions. The OCTAL PERMISSIONS
+
+
+$ stat family_dog.jpg
+*
+* File: Pictures/family_dog.jpg
+* Size: 49	Blocks: 8	IO Block: 4096 	regular file
+* Device: fd00h/64768d	Inode: 52946177		Links: 2
+* Access: (0640/-rw-r----)	Uid: (1000/aaron)	Gid: (1005? family)
+
+As you can see the Access 
+Access: (0640/-rw-r----)
+
+Has an octal value of 0640. Ignore the first 0 since it's for special permissions like setting the GID and the UID.
+
+So 640 means the user (owner permissions are 6),  (the group permissions are 4), (the others permissions are 0)
+
+How are this calculate?
+
+rw- in binary is 110
+r-- in binary is 100
+--- in binary is 000
+
+This binary in decimal is 
+
+110 (2^2 + 2^1 + 0) = 6
+100 (2^2 + 0 + 0) = 4
+
+If binary is a little bit difficult you can use the Octla table
+
+Permission	Value
+   r		4 (2^2)
+   w		2 (2^1)
+   x		1 (2^0)
+
+
+
+To use it as an example
+$ chmod 640 family_dog.jpg
+
+
+
+

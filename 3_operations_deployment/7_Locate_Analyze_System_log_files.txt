@@ -1,0 +1,137 @@
+# LOCATE ANALYZE SYSTEM LOG FILES:
+
+The linux kernel and most programs that run on it generate status messages, error messages, warnings. And there can be tens of different programs generating all these messages all the time. Organizing this logs in file is the job of logging daemons. These are simply applications that collect organize and store logs. The most popular on Linux is rsyslog. 
+
+rsyslog = rocket-fast system for log processing and stores all logs in /var/log directory
+
+$ ls /var/log/
+
+Since they are regular files you can search through them by using grep.
+N.B most of this files cannot be read by regular user. So it's better to make this kind of analysis with a root user
+
+
+In the folder we can search for ssh for example. 
+
+$ grep ssh
+
+We see a file /var/log/secure
+
+and we can see into this file using less for example
+
+$ less /var/log/secure
+
+
+Many log entries follow the same format, especially system logs that keep track of what happened on the operating system.
+Most of them are in the /var/log/messsages file
+
+To see logs as soon as they appear in the file. Use the -F option of tail command
+
+$ tail -F /var/log/secure
+
+
+So it's not hard to navigate through the logs in /var/log... but it could be easier
+
+
+##  JOURNALCTL
+
+For example you want to see what your team did with the sudo command
+
+A programm called Journal Daemonm is a bit smarter at how it collects data then rsyslog and the Journal Control Command lets us analyze logs more efficiently.
+So based on the example before we can check the command behind sudo.
+
+$ which sudo
+/bin/sudo
+
+And then we can ask journalctl to show all the messages generated using that command. 
+
+$ journalctl /bin/sudo
+
+or to search for the logs of a service
+
+$ journalctl -u sshd.service
+
+
+To exit from journalctl simply press 'q'
+
+Intersting part is that we can see that the ssh service is constantly running in backgrouynd while journalctl constantly monitor its activity.
+
+-u stands for unit so in the previous example sshd.service unit. 
+
+
+
+To go to the end of the output once you type journalctl you can simply press the '>' charchter.  If you want to open tyhe journalctl at the end just type
+
+$ journalctl -e 
+
+journalctl also have a follow mode
+
+$ journalctl -f
+
+
+The logs can be of different type:
+
+info
+warning
+err
+crit
+
+If we want to look only for err or more we can use the -p (priority)
+
+$ journalctl -p err
+
+If you don't know the list of priprity just type
+
+$ journalctl -p<space> <tab><tab>
+alert crit debug emerg err info notice warning
+
+by pressing <tab> twice you will get a list of all priority code names you can use.
+
+We can also use grep using the -g option.
+
+For example, we can select all the logs with the info priority 
+
+$journalctl -p info -g '^b'
+
+We can also tell journalctl to look for logs after a certain time '-S'
+
+$ journalctl -S 02:00
+
+You can use Since Until using -S and -U option
+
+$ journalctl -S 01:00 -U 02:00
+
+-S,-U can even supports date
+
+$ journalctl -S '2021-11-16 12:04:55'
+
+
+If we want to see logs only from when the system power up or in our current boot. 
+To see logs only from the current boot use the -b option
+
+$ journalctl -b 0
+
+To see logs from the previous boot we can use negative one
+
+$ journalctl -b -1
+
+But by default this journal is only kept in memory, at least that's the default on CentOS currentlty. It means that when you reboot or power off logs in this journal are lost. To make it save them to disk you can create this directory:
+
+$ mkdir /var/log/journal/
+
+
+To see a list of who logged into the system you can use the 'last' command. The newest entries are at the top, so you must scroll up to see them.
+
+$ last
+
+aaron 		tty2		tty2	
+reboot		system boot	4.18.0-
+
+
+The lines beginning with Reboot System Boot also show you when the system was powered on	
+
+$ lastlog 
+
+command show you when each user on the system logged in the last time
+
+
+

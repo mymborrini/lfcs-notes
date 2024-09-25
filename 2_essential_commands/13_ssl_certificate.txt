@@ -1,0 +1,90 @@
+SSL stands for "secure sockets layer"
+TLS stands for "transport layer security"
+
+
+TLS is an upgrade of SSL but nowadays these two terms are more or less synonym.
+
+What are certificates used for?
+
+The certificate authenticates the website and encrypts the data.
+
+
+How do we create these certificates on Linux? 
+
+OpenSSL is the utility used in Linux to create certificates
+
+Openssl can be used for:
+
+. Creation and management of private keys, public keys and parameters
+. Public key cryptographic operations
+. Creation of x.509 certificates, CSRs and CRLs
+. Calculation of Message Digest and Message Authentication Codes
+. Encryption and Decryption with Ciphers
+. SSL/TLS Client and Server Tests
+. Handling of S/MIME signed or encrypted mail
+. Timestamp requests, generation and verification
+
+The creation of x.509 certificates CSRs and CRLs interests us the most. The x.509 certificates can be used in the website for authentication and encryption.
+
+OpenSSL has a lot of commands and specific options and it's difficult to remember what command is used for what specific task. Let's even check some tricks to get what we want.
+
+
+What is a Certificate Signing Request (CSR)?
+
+Direct sub-command deals with certificate signing requests, and that's because digital certificates used to secure website traffic are not enough on their own. example.com can use a certificate to ensure traffic between a user and a website. That's no issue, but when a user visits example.com, their browser also needs to trust the certificate. It needs a way to be sure that the certificate is legitimate, the real deal, and not some fake created by some malicious hacker. That's by checking if something called a certificate authority signed example.com certificate. So we can send the certificate that we generate locally to some company like Google. Then they can use a special private key and sign our certificate. And once that certificate is signed any browser can then check the signature and notice that indeed Google validated it, so it's legitimate.
+
+
+As we said before OpenSSL has a lot of different commands, what interested us the most are req and x509.
+
+So we start by typing:
+
+$ man openssl req.
+
+There is a lot of stuff, to help us we can press
+
+/EXAMPLE
+
+and this will redirect us to the example section where it will be easier to start with
+
+The ones we are going to focus on are:
+
+Create a private key and then generate a certificate request from it:
+$ openssl req -newkey rsa:2048 -keyout key.pem -out req.pem
+
+
+Generate a self-signed root certificate:
+$ openssl req -x509 -newkey rsa:2048 -keyout key.pem -out req.pem
+
+So we are going to generate two things, the private key and the certificate signing request. We can generate both of this things with a single command.
+
+So we type:
+$ openssl req -newkey rsa:2048 -keyout key.pem -out req.pem
+
+-newkey => this will generate a new key of type rsa with 2048 bits
+-keyout => This tell the utility to save the private key in a file called key.pem
+-out => This tell the utility to save the certificate in a file called req.pem
+
+It will ask you for a password. Set whatever password you like
+Some other information will be ask to you but nothing special, the organisation name, the country etc...
+
+Once you have this two files you can send the certificate to an authority like google etc...
+
+
+But this is not the only option. You may need a certificate that is self signed and used in an internal network. To do so, you have to tell every pc to trust that certificate. To do so type the following command:
+
+$ openssl req -x509 -noenc -newkey rsa:4096 -days 365 -keyout myprivate.key -out mycertificate.crt
+
+-x509 this tells to generate the x509 certificate type. If you don't pass this flag openssl won't generate a certioficate but only a private key
+-noenc means it will not asked for a password to encrypt this key. This is not recommendend but for an experimental porpouse we don't need the password
+-newkey rsa:4096 means the same as before create a key and use 4096 bit for it
+-days 365 means the certificate is valid for 365 days
+-keyout myprivate.key -out mycertificate.crt the same meaning as before.
+
+Since we had specified noenc we can play a little bit with the ceritificate using the openssl x509 command
+
+$ openssl x509 -in mycertificate.crt -text
+
+-in means input and is followed by the name of the file
+-text means that the certificate is printed in text form
+
+Here you can find a lot of information about the ceritficate the validity dates for example 

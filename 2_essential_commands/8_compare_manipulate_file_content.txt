@@ -1,0 +1,233 @@
+Compare and manipulate file content
+
+
+CAT & TAC
+When the file you're working on is really small you can use the cat command
+
+$ cat /home/users.txt
+* user1
+* user2
+* user3
+* user4
+* user5
+* user6
+* user7
+
+Or we can use the tac command to see the file in reverse order
+
+$ tac /home/users.txt
+* user7
+* user6
+* user5
+* user4
+* user3
+* user2
+* user1
+
+
+TAIL & HEAD
+Especially in long files like logs is extremely useful to see the last piece of the log. To do this the tail command comes in handy
+
+$ tail /var/log/dnf.log
+...
+
+Adding a -n <Number-line> will print you the only the last 20 lines.
+
+$ tail -n 20 /var/log/dnf.log
+---20
+
+The opposite of tail is head command and will print the first n lines. Like tail you can specify the number of lines with n flag
+
+$ head /var/log/dnf.log 
+$ head -n 20  /var/log/dnf.log 
+
+
+SED
+Sometimes you have files which require many changes in many places. We have a tool which can automate this task.
+
+# userinfo.txt
+* ravi 	seattle 	usa	39483930	india
+* mark	toronto		canada	12345678	canada
+* john 	newyork		usa	39302393	usa
+* ...
+* ravi 	montreal	canda	89129834	canda
+* mary 	ottawa		canda	86726387	canda
+
+
+As you can see there is a mispelling in the last two lines.
+
+sed stay for stream editor
+
+$ sed 's/canda/canada/g' userinfo.txt  
+
+This command replace canda with canada. With this command we can preview what sed will do WITHOUT change the actual file. Now break down how this command works
+
+'s/canda/canada/g' 
+we MUST mark with single quote '. Do be sure sed does not interpreter  the command as the file's content. 
+
+s 		at the beginning tells sed this is a substitute command
+canda 		what you should look for
+canada		what you want to replace it
+g		means global. This way sed will replace everything globally. If you omit it only the first occurrence for each line will be replaced
+
+As we tell before sed will only show a preview of the file.
+
+To effectively replace it we have to add -i (--in-place)
+
+ $ sed -i 's/canda/canada/g' userinfo.txt.
+
+sed have a lot of different other use, for example it can separate lines from 3 to 15
+
+sed -n "3,15p" <filename>
+
+Or if you want to delete the first 1000 lines 
+
+sed '{1,1000d}' <filename>
+
+If you have to apply an operation only on a range of specific lines for example from line 5 to line 10
+
+
+ $ sed -i '5-10s/canda/canada/g' userinfo.txt.
+
+Or if you want to apply an operation only on lines 5 and 10
+
+ $ sed -i '5,10s/canda/canada/g' userinfo.txt.
+
+If you need to make a replacement but the '/' charachter is in the replacement you can do the followign
+
+ $ sed -i 's<char-of-your-choice><string-to-replace><char-of-your-choice><replacement><char-of-your-choice>g' userinfo.txt.
+
+For example I used & as <char-of-your-choice> and the result is something like the following:
+
+sed 's&#%$2jh//238720//31223&$2//23872031223&g' -i data.txt 
+
+
+
+CUT
+Now image we want to extract the first column of the userinfo.txt
+
+So from this
+
+
+# userinfo.txt
+* ravi 	seattle 	usa	39483930	india
+* mark	toronto		canada	12345678	canada
+* john 	newyork		usa	39302393	usa
+* ...
+* ravi 	montreal	canda	89129834	canda
+* mary 	ottawa		canda	86726387	canda
+
+To this
+* ravi 	
+* mark	
+* john 	
+* ...
+* ravi 
+* mary 	
+
+cut command will extract only the part we need from a file.
+
+$ cut -d ' ' -f 1 userinfo.txt
+
+Now break down this command
+
+-d means delimiter ( in this case is space)
+-f we specify the words we want to extract.
+
+Let's consider another example.The file before is separated by comma
+
+# userinfo.txt
+* ravi,seattle,usa,39483930,india
+* mark,toronto,canada,12345678,canada
+* john,newyork,usa,39302393,usa
+* ...
+* ravi,montreal,canda,89129834,canda
+* mary,ottawa,canda,86726387,canda
+
+And we want to extract the country so the third column
+
+$ cut -d ',' -f 3 userinfo.txt > countries.txt
+
+
+UNIQ & SORT
+Now we have the list of countries. 
+
+# countries.txt
+* usa
+* canada
+* usa
+* canada
+* canada
+
+How can we remove duplicates? with the uniq command
+
+$ uniq countries.txt
+* usa
+* canada
+* usa
+* canada
+
+All uniq does is to remove repetetive lines, so in this case the output is not unique and it only removes the two lines of canada at the end. So how can we achieve the goal of having only uniq lines,
+with the sort command
+
+$ sort countries.txt
+* canada
+* canada
+* canada
+* usa
+* usa
+
+So we can just pipe the two commands
+
+$ sort countries.txt | uniq
+canada
+usa
+
+
+DIFF
+Image that we have a configuration file, with 250 lines of text. A new configuration file has 268 lines of text.
+
+Image the following scenario
+
+1 Only exists in file 1		1 Only exists in file 2
+2 Identical line 2		2 Identical line 2
+3 Identical line 3		3 Identical line 3
+4 Only exists in file 1		4 Only exists in file 2
+
+
+With the diff tool we can see the difference in this file
+
+$ diff file1 file2
+* 1c1
+* < only exists in file 1
+* ---
+* > only exists in file 2
+* 4c4
+* < only exists in file 1
+* ---
+* > only exists in file 2
+
+
+Now break down the outout
+
+1c1 				tells use that line 1 from file 1 is changed in line 1 in file 2
+< only exists in file 1		< the content exists in the 1 file
+> only exists in file 2		> the content exists in the 2 file
+
+
+It would be difficult to understand the changes only based on this lines so we can ask diff to add some context
+
+$ diff -c file1 file2 		# -c stays for context	
+In this case the output would be different and it will show us some content. The lines with am exlamation mark are different, the lines without mark are identical.
+
+
+You can do a side by side command which is probably the easies way, but of course if the files are huge it can be really expensive
+
+$ sdiff file1 file2
+* Only exists in file 1		| Only exists in file 2
+* Identical line 2		  Identical line 2
+* Identical line 3		  Identical line 3
+* Only exists in file 1		| Only exists in file 2
+
+As you can see the differences are marked with a pipe
+

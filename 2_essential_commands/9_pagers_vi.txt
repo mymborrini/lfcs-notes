@@ -1,0 +1,38 @@
+PAGERS (LESS,MORE)
+
+to use pages type less command and the name of the file
+
+$ less <file name>
+
+You can search by typing /<string-you-want-to-search> and the <string-you-want-to-search> will be highlighted
+The case is sensistive. In order to make it case insensitive you have to pass the -i option.
+So press
+-i and then the / characther to start a search case insensitive
+
+To exit the page just press q
+
+$ more <file name> 
+
+Works in the same way, you move not with your keys but by pressing your space bar, a page at the time
+
+To get out press q
+
+
+VIM
+
+vim text editor, is the default vim
+
+Notes:
+1 If you want to search case insensitive in vim
+
+/<what you want to search>\c
+
+The \c will make your search case insensitive
+
+2 If you want to go to a particular line number:
+
+:23
+
+YOu will go to line 23
+
+3 to cut a line of test you can use d

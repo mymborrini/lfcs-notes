@@ -1,0 +1,159 @@
+Manage Startup Processes and Services
+
+When we boot up Linux certain important application starts up automatically, some of them even start up in a particular order. Furthermore, if an application crashes it restarts automatically. INIT = INITIALIZATION SYSTEM manages all of this.
+
+The INIT needs specific instruction to know how to do is job. It has all the instruction it needs in stucture called units, these are simply text files that describe the necessary logic. Units can be of various types, such as service socket, device,  timer and others.
+
+For example timer unit tells the init system to lanuch a particular application once per week, maybe to clean up some file or verify a database.
+
+Service units have clear instructions about things such as what command to issue to start up a program, what to do it the program crashes, what command to issue when a program is restarted and many more things.
+
+We can see a list of service commands by type
+
+$ man systemd.service
+
+Let's look at a real example
+
+The server need to run the ssh deamon to let users connect to them form remote locations. There is a service unit that instucts the init system about how to start this.
+
+$ systemctl cat sshd.service
+
+# /usr/lib/system/sshd.service
+[Unit]
+Description=OpenSSH server daemon
+Documentaion=man:sshd(8) man:sshd_config(5)
+Ater=network.target sshd-keygen.target
+Wants=sshd-keygen.target
+
+[Service]
+Type=notify
+EnvironmentFile=~/etc/crypto-policies/back-ends/opensshserver.config
+EnvironmentFile=~/etc/sysconfig/sshd
+ExecStart=/usr/sbin/sshd -D $OPTIONS $CRYPTO_POLICY
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartSec=42s
+
+[Install]
+WantedBy=multi-user.target
+
+<<
+
+
+ExecStart tells the system what command it should run when it wants to start the ssh daemon.
+ExecRelod tells the system what command it shoudl run when it wants to reload the ssh daemon.
+
+If we want to modify this file we can use a command like
+
+$ systemctl edit --full sshd.service
+
+If we want to cancel our edits later and return the service file to its factory defaults settings
+
+
+$ systemctl revert sshd.service
+
+If we want to see the status of the service we can type
+
+$ systemctl status sshd.service
+sshd.service - OpenSSH server daemon
+Loaded: loaded (/usr/lib/systemd/system/sshd.service; enabled; vendor preset>
+Active: active (running) since Wed 2021-12-08 16:48:53 CST; 15min ago
+Docs: 	man:sshd(8)
+	man:sshd_config(5)
+Main PID 1031 (sshd)
+Tasks: 1 (limit: 23555)
+Memory: 2.1M
+CGroupd: /system.slice/sshd.service
+		|_ 1031 /usr/sbin/sshd -D-oCiphers=aes256=gcm@openssh.com,chacha20-p>
+
+
+Dec 08 16:48:53 LFCSD-Centos....
+Dec 08 16:48:53 LFCSD-Centos....
+Dec 08 16:48:53 LFCSD-Centos....
+Dec 08 16:48:53 LFCSD-Centos....
+
+
+
+<<
+
+"enabled" means it will automatically starts up. Disabled means that it won't automatically starts up but it can be manually run by the administrator. When the service is running it will be 
+Active: active(running)
+
+Main PID is the process id
+
+The process is simply the computer code loaded into memory and using the CPU when it needs to execute instructions.
+
+1031 /usr/sbin/sshd -D-oCiphers=aes256=gcm@openssh.com,chacha20-p>
+
+this is the exact command used to start up the process.
+The logs are really useful to see iof the program starts up properly and if it encounters any error at the starting of the application
+
+
+To stop a service whe can simpy run the
+
+$ systemctl stop sshd.service
+
+To start a service is a similar process
+
+$ systemctl start sshd.service
+
+To restart it 
+
+$ systemctl restart sshd.service
+
+This restarts command can be a little disruptive sometimes. For example, if a few users are actively using that programn the restart may interrupt their work. There is a more gentle way to do it withoyut cliosing and reload the application
+
+$ systemctl reload sshd.service
+
+Reload simply reload the service.
+
+Not all the application supports reloading, but we have a command that try to reload the application and it case it does not have thisbpossibility it will restarts it. 
+
+$ systemctl reload-or-restart sshd.service
+
+To disable the restart automatically at the startup
+
+$ systemctl disable sshd.service
+
+$ systemctl status sshd.service
+Loaded: loaded (/etc/systemd/system/sshd.service; disbaled;)
+
+Or you can also check
+$ systemctl is-enabled sshd.service
+disabled
+
+To re-enable it
+$ systemctl enable sshd.service
+
+
+
+So usually after we install a new application and especially if it's a daemon or a server of some kind like a database server or an http server app, we'll want to do two things. We want to enable it at boot
+and we want to manually install it so we are able to use it immediatly.
+
+$ systemctl enable sshd.service
+$ systemctl start sshd.service
+
+We have a command that do all the things in one shot
+
+$ systemctl enable --now sshd.service 
+
+We have the disable option as well of course
+
+$ systemctl disable --now sshd.service
+
+
+
+The boot is not the only trigger, some services can automatically start up other services if they want to do so. So service one can start service two even if you disabled and stopped service two. There is a brute way to prevent this from happening and it's called masking
+
+$ systemctl mask atd.service
+$ systemctl unmask atd.service
+
+
+So a masked service can't be enabled or started.
+
+It can be useful to get a list of all service units available on the system no matter if they are currently enabled, disabled, started or stopped
+
+$ syustemctl list-units --type service --all 
+
+

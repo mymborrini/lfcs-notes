@@ -1,0 +1,23 @@
+Install Software by Compiling Source Code
+
+
+We saw how to install software from Ubuntu's repositories as well as third-party repositories.
+
+But in some cases will simply have to download the code from a place like github and compile it ourselves. Convert it from human readable text code to executable code for computers that can run efficiently.
+
+For example
+
+$ git clone https://github.com/htop-dev/htop.git
+
+
+Now check for different instructions
+$ less Readme.md
+
+After reading the Readme we have to install the packages
+
+$ sudo apt install libncursesw5-dev autotools-dev autoconf automake build-essentials
+
+
+The build-essentials package is almost always needed as it pulls in most of the compilation tools that we require.
+
+Every shell in Linux is configured to look for application in /usr/local/bin/ directory

@@ -1,0 +1,27 @@
+We know that when we create a user all files from
+
+/etc/skel 
+
+
+Examples:
+Image we want to inform all new users about some default policy:
+
+We can create a file like the following:
+
+$ sudo vim /etc/skel/README
+# Please don't run CPU-intensive processes between 8AM and 10PM
+
+
+So a new user can find a README in their home directory and using a command like cat they can see our message. 
+
+If we want the user to use a special command we can change the PATH variable by adding a semicolon and adding a new location  for example /opt/bin
+
+.bashrc
+....
+
+PATH="/opt/bin:$PATH"
+
+When we type a command like 'ls' for example linux will look for this command in the PATHS directory ( each path is separated by a semicolon ) and if it find one it can execute it. This is useful so a user can avoid writing down the whole abosulute path for a specific command. 
+
+
+If you want to add the same variable path for each user instead of Setting it for the whole System, just change the variable in /etc/skel/.bashrc

@@ -1,0 +1,200 @@
+Verify the integrity and the availability of resources
+
+
+DISK
+
+How do we know when we're running out of storage space? We can use the 'df' or disk-free utiliy
+
+$ df
+Filesystem	1K-blocks	Used		Available		Use%		Mounted on
+devtmpfs	  1881280	   0		  1881280		  0%		/dev
+...
+
+
+This output is a little bit hard to read
+For example, we see how much space is used on a disk, but we see this in one kilobyte blocks
+
+With the -h option is more human-readable
+
+$ df -h
+Filesystem	   	  Size	 		Used		Available		Use%		Mounted on
+devtmpfs	     	  1.8G	   	           0		     1.8G		  0%		/dev
+tmpfs		     	  1.9G  	   	   0		     1.9G		  0%		/dev/shm
+tmpfs		     	  1.9G			9.3M		     1.9G	 	  1%		/run
+tmpfs		     	  1.9G  	    	   0		     1.9G		  0%		/sys/fs/cgroup
+/dev/mapper/cs-root	   17G			7.9G		     9.2G		 47%		/
+/dev/vda1		 1014M			435M		     580M		 43%		/boot
+tmpfs			  374M			 24K		     374M		  1%		/run/user/1000		 
+
+Now sizes are displayed in megabytes, gigabytes, and terabytes instead where we see the letters M, G, R
+We can ignore the filesystem that contains the word 'tempfs', those are virtual file systems that only exist in the computer's memory, not on the storage devices.
+
+We have two main FileSystem, the one mounted on / is the root fileSystem where our Linux operating system is installed and the one mounted on/boot is a small file system where boot files are installed.
+
+To see how much disk space a specific directory is using we can use the 'du' command 
+
+$ du -sh /bin/
+# 238M /bin/
+
+The s flag is the summarize option that makes 'du' display disk space used by the entire bin directory. Without the -s option 'du' will display us not only the /bin directory but also every subdirectory contained in /bin 
+
+
+
+MEMORY (RAM)
+
+To see how memory is used we can use the 'free' command
+
+$ free -h
+#		total		used		free		shared		buff/cache		available
+# Mem:		3.6Gi	       1.0Gi           1.5Gi		15Mi		1.1Gi			2.4Gi
+# Swap:		2.0Gi		  0B	       2.0Gi
+
+
+As before -h option makes it human-readable with MebiBytes,GigiBytes,TeriBytes and so on
+
+1 MebiBytes = 2^20 = 1048576 bytes
+1 MegaBytes = 1000000 bytes
+
+
+So we can see we have a total of 3.6Gi of memory and 1.0Gi is currently used.
+And of course the colum available ( 2.4Gi) show us how much memory we still have. So not the free colum
+
+
+CPU (PROCESSOR)
+
+With the 'uptime' command we can see how heavily the CPU cores were used by programs running on our server
+
+$ uptime
+# 17:24:55 up 32min, 1 user, load average: 0.05, 0.05, 0.01
+
+The important information is in the three numbers we see after load average.
+
+The first number tells use the load average for the last one minute
+The second number tells use the load average for the last 5 minutes
+The third number tells use the load average for the last 15 minutes
+
+So if we see a load average of 1.0 as our first number, it means that one CPU core has been used at full capacity in the last one minute. 
+If we see 2.0 as our last number, that would mean that two CPU cores were fully utilized at 100% in  the last 15 minutes.
+
+So let's say we have eight core CPU system and we see a load average like this one:
+
+6.00,0.31,0.18
+
+Some recent programs worked hard to do something for a very brief time, but overall the system is not pushing the CPU too much, so we shouldn't be too concerned
+
+But if we see something like this
+
+6.12,7.12,7.30
+
+This means that our system use the CPUs heavily almost all the time. It's time to upgrade to more powerful server or optimize our setup so that it requires fewer CPU resources.
+
+If we need to see some details about the specific CPU used on the system we can use the 'lscpu' command
+
+$ lscpu
+
+
+And if we need to see other hardwares on the system we can use
+
+$ lspci
+
+
+INTEGRITY OF FILE SYSTEM
+
+To check a fileSystem for errors, we must first unmount it in case it is mounted
+
+Then it dependes on the type of filesystem:
+
+an XFS filesystem we can use a command like the following:
+$ sudo xfs_repair -v /dev/vdb1
+
+-v => means verbose
+
+/dev/vdb1 points to the partition where this filesystem is stored 
+
+
+To check and repair an EXT4 filesystem we can use a command like this one
+
+$ sudo fsck.ext4 -v -f -p /dev/vdb2
+
+-f => forces a check
+-p => turns on the so called preen mode and this lets the utility fix some simple problems automatically. But if serious errors are encountered, yes or no questions will still be asked by the program
+
+
+So finally, how do we make sure that key processes, importat programs are working correctly on our system?
+
+First run
+
+$ systemctl list-dependencies
+#
+# default.target
+# o |______ accounts-daemon.service
+# o |______ gdm.service
+# o |______ nvmefc-boot-connections.service
+# o |______ ...
+
+
+The 'o' before the name could be green or white if everything is correct. A white light means that this particular service is currently stopped and that's no issue.
+Generally we should see green lights next to importat services that we want active at all times on the server.
+
+Using
+
+$ systemctl status <service-name>
+
+We could check on what is wrong.
+
+
+Appendixs:
+
+Appendix A: What is a fileSystem?
+
+A filesystem is a method used by operating systems to organize and store data on storage devices such as hard drives, solid-state drives (SSDs), USB drives, and network storage. It provides a structured way to manage files and directories, allowing users and applications to access, create, modify, and delete data stored on the storage medium.
+
+Key characteristics of a filesystem include:
+ . Hierarchy: Filesystems typically organize data in a hierarchical structure, consisting of directories (folders) and files. Directories can contain files and other directories, forming a tree-like structure.
+ . Naming: Each file and directory in a filesystem is assigned a unique name, allowing users and applications to reference and access them.
+ . Metadata: Filesystems store metadata associated with each file and directory, including attributes such as permissions, ownership, timestamps (creation, modification, access), file type, and size.
+ . Storage Allocation: Filesystems manage the allocation of storage space on the underlying storage device. This includes managing free space, allocating space for new files, and reclaiming space from deleted or modified files.
+ . Access Control: Filesystems implement access control mechanisms to regulate which users or processes can access, read, write, or execute files and directories. This is typically done through permissions and ownership settings.
+ . Data Integrity: Filesystems may include features to ensure the integrity and consistency of stored data, such as journaling, checksums, and redundancy.
+ . Performance Optimization: Filesystems may employ various techniques to optimize performance, including caching, buffering, and file system journaling.
+
+
+Appendix B: What is filesystem journaling?
+
+Filesystem journaling is a technique used by some filesystems to improve data integrity and recovery in the event of system crashes or power failures. It works by maintaining a log or journal of filesystem transactions, allowing the filesystem to recover quickly and efficiently from unexpected shutdowns or failures.
+
+Here's how filesystem journaling typically works:
+
+ . Transaction Logging: When a change is made to the filesystem, such as creating, modifying, or deleting a file or directory, the filesystem logs the details of the transaction in a journal before actually performing the operation on the disk.
+ . Atomicity: The filesystem ensures that each transaction is either fully completed or not completed at all. This means that if a transaction is interrupted halfway (e.g., due to a power failure), the filesystem can use the journal to either complete or roll back the transaction, maintaining filesystem consistency.
+ . Fast Recovery: In the event of a system crash or unexpected shutdown, the filesystem can quickly replay the transactions recorded in the journal to bring the filesystem back to a consistent state. This helps minimize the time required for filesystem checks (fsck) during boot-up, reducing downtime and improving system availability.
+ . Metadata Updates: Filesystem journaling primarily focuses on logging changes to critical filesystem metadata, such as directory structures, file allocation tables, and inode tables. Data updates (actual file content) may or may not be journaled, depending on the journaling mode and filesystem implementation.
+
+There are different types or modes of journaling, including:
+
+ . Write-back journaling: Only metadata changes are journaled, and data changes are written directly to disk. This mode offers better performance but may have a higher risk of data corruption in the event of crashes during data writes.
+ . Ordered journaling: Metadata changes are journaled along with data changes, but data writes are ordered in a way that ensures metadata updates are written to disk before associated data changes. This mode provides a balance between performance and data integrity.
+ . Full journaling: Both metadata and data changes are journaled, offering the highest level of data integrity but with potential performance overhead.
+
+Appendix C: A few fileSystems features
+
+
+ext4 (Fourth Extended Filesystem):
+ . ext4 is the default filesystem for many Linux distributions due to its stability, reliability, and backward compatibility with its predecessor, ext3.
+ . It supports large file sizes (up to 16 TB) and volumes (up to 1 EB), making it suitable for a wide range of use cases, including desktops, servers, and enterprise environments.
+ . Key features of ext4 include:
+	. Journaling: ext4 uses journaling to improve reliability and reduce the risk of data corruption in the event of a system crash or power failure.
+	. Extents: Extents improve filesystem performance by reducing fragmentation and improving the efficiency of file allocation.
+	. Delayed allocation: ext4 delays block allocation until data is actually written to disk, reducing fragmentation and improving performance.
+	. Online resizing: ext4 supports online resizing of filesystems, allowing administrators to dynamically resize volumes without unmounting them.
+ . ext4 is well-suited for most Linux systems and is widely supported across various distributions.
+
+XFS (XFS Filesystem):
+ . XFS is a high-performance filesystem developed by SGI (Silicon Graphics, Inc.) and is known for its scalability and performance, particularly with large files and volumes.
+ . It supports extremely large file sizes (up to 8 EB) and volumes (up to 16 EB), making it ideal for use cases requiring massive storage capacities, such as data centers and cloud environments.
+ . Key features of XFS include:
+	. Journaling: XFS uses a metadata journal to provide crash consistency and fast recovery in the event of system failures.
+	. Allocation groups: XFS divides the filesystem into allocation groups, allowing parallel I/O operations and improving scalability and performance on multi-core systems.
+	. Delayed logging: XFS uses delayed logging to improve performance by batching metadata updates and reducing disk I/O.
+	. Online resizing: XFS supports online resizing of filesystems, allowing administrators to resize volumes without unmounting them.
+ . XFS excels in handling large files and high-performance workloads, making it suitable for applications requiring intensive I/O operations and massive storage capacities.

@@ -1,0 +1,90 @@
+Manage Software with Package Manager
+
+
+To install remove or upgrade software on UBUNTU or debian distribution we use the apt comman.
+
+Before installing anything we use the
+
+$ sudo apt update
+
+This is needed because the package management system keeps a local database about all the software packages that are currently knows about.
+This information often becomes outdated. If the last apt update command was run ago it will only know about the packages that were available one week ago, so with this command we can update or refresh this information.
+The updated information is downloaded from what is called repositories. These repositories are simple servers that store information about software packages, but also the software packages themself.
+
+If apt update detects that some of our installed software has new versions available in the repositories, it will tell us what packages we can upgrade and then to upgrade those packages we can run a 
+
+$ sudo apt upgrade
+
+It is a good practice to chain this two commands 
+
+$ sudo apt update && sudo apt upgrade
+
+
+Let's say we want to install a new application on the system for example nginx
+
+$ sudo apt update && sudo apt install nginx
+
+If we run the install command without updating the package manager, we might end up installing an older version of Nginx instead of the latest version
+
+If we take a closer look at the log
+
+The following additional packages will be installed:
+	fontconfig-config, libnginx-mod-stream...
+
+
+This let us know that this actually pulls in a lot more packages besides the Nginx; the additional packages that are installed are called dependencies. Most software needs extra packages to run properly.
+
+But what is a package and what does it contain? It's simply an archive containing packages needed by nginx.
+Once is installed we can actually see the files the package contains using an utility tool dpkg
+
+$ dpkg --listfiles nginx
+
+Remeber this will sghow only the files of the package you specify, it does not show files for its depedency
+
+$ dpkg --listfiles nginx-core
+/.
+/usr
+/usr/sbin
+/usr/sbin/nginx
+...
+
+Thiw works in reverse mode as well, for example if you're curious about what package installed the /usr/sbin/nginx you can use:
+
+$ dpkg --search /usr/sbin/nginx
+nginx-core: /usr/sbin/nginx
+
+
+If we are curios about the puropuse of a certain package, for example libnginx-mod-stream we can run the following command:
+
+$ apt show libnginx-mod-stream
+
+So we'll need to search for it, for example, to look up all the packages that mention the word nginx
+
+$ apt search nginx
+
+This can actually produce a lot of matches and this is because it is looking for the description.
+
+In general case it's better to exclude description and search for packages based only on the name.
+
+$ apt search --names-only  nginx
+
+We can search for packages that matches the words:
+
+$ apt search nginx module image 
+
+And this means that it's going to have to match all of these words
+
+To remove a package that is no longer needed we can do 
+
+$ sudo apt remove <package-name>
+
+This removes the package name, but the depedencies are still around and this is something we don't want to. 
+
+$ sudo apt autoremove will remove all the packages that are orphaned
+
+
+An alternative way to uninstall:
+
+$ apt autoremove nginx
+
+This way remove the package alongside all of the depedencies

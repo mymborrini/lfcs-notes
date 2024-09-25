@@ -1,0 +1,186 @@
+REDIRECTING OUTPUT 
+
+
+For example consider having the following file:
+
+file.txt
+6
+5
+1
+3
+4
+2
+
+You can type to print it
+
+$ cat file.txt
+6
+5
+1
+3
+4
+2
+
+And then sort it
+
+$ sort file.txt
+1
+2
+3
+4
+5
+6
+
+But this will only print the sorting output, what if we want to save it?
+
+$ sort file.txt > sortedfile.txt
+
+Why this is called redirection?
+
+Because program have a standard output which is the console, with you redirect the standard output to a file.
+
+If then you type
+
+$ cat sortedfile.txt
+1
+2
+3
+4
+5
+6
+
+N.B.
+When you redirect output the file is overridden
+
+To add instead of override it we can use the '>>' operator to append the output.
+
+Instead of '>' this operator you can use '1>' this operator, the result is the same. So let's look at what this mean.
+
+
+
+STDIN, STDOUT, STDERR
+
+Output can be of two types, one output is for normal text and data and successfully process, the other output is for error or warning messages.
+				
+				stdout
+				1>
+	   stdin	   |-----------------------------> terminal	
+	    <		   |	
+File.txt --------------> sort
+			   |
+			   |	stderr
+			   |	2>		
+			   |-----------------------------> errors.txt
+
+
+
+So to redirect input, we can use something like this <file.txt.
+
+Redirecting the erorrs is pretty useful since the most of the time when we want to check the logs, they are in the way
+
+For example:
+
+$ grep -r '^The' /etc
+* grep /etc/...: Permission denied
+* grep /etc/...: Permission denied
+* /etc/brty/Inoput/all.txt: The two keays
+* grep /etc/...: Permission denied
+
+
+As you can see there are a lot of permissions denied which are interferring 
+
+$ grep -r '^The' /etc 2> /dev/null
+* /etc/brty/Inoput/all.txt: The two keays
+
+
+By redirecting only the error you have a cleaner view of what you are loooking at
+
+/dev/null is the location of default which means 'off the screen'. The /dev/null is like the black hole in Linux
+
+
+We can also redirect both the std output and the err output to two different files and append the errors instead of override
+
+$ grep -r '^The' /etc/ 1>>output.txt 2>>errors.txt
+
+
+As you can see from below 
+$ grep -r '^The' /etc
+* grep /etc/...: Permission denied
+* grep /etc/...: Permission denied
+* /etc/brty/Inoput/all.txt: The two keays
+* grep /etc/...: Permission denied
+
+The output muessare are intertwined with error messages. If we'd want to save all output exactly like we sse it not, what command whould we use?
+
+$ grep -r '^The' /etc/ > all_output.txt 2>&1
+or
+$ grep -r '^The' /etc/ 1> all_output.txt 2>&1
+
+N.B.
+2>&1 has to be in the end
+
+So what's  happening here?
+1>all_outoput we say standard out should go to all underscore
+2>&1 we say stderr goes to stdout.
+
+If you type 
+
+$ grep -r '^The' /etc/ 2>&1 1> all_output.txt
+* grep /etc/...: Permission denied
+* grep /etc/...: Permission denied
+* grep /etc/...: Permission denied
+
+
+because you redirect 2 which is the stderr  to the current stdout which is the console in that moment and then you redirect the 1 to all_output.txt
+
+
+
+REDIRECTING INPUT 
+
+For example
+
+$ sendemail someone@example.com			( from keyboard )
+* Hi someone,
+* How are you today?
+* ...
+* Talk to you soon
+*
+* Bye
+
+sendemail expect you type something on your keyboard
+
+$ sendemail someone@example.com < emailcontent.txt	(from file)
+
+This way you triggered the command make it think you type the mail content in your console.
+
+Another most used case for inpuit redirectioon is the HEREDOC and HERE STRING
+
+
+$ sort <<EOF 
+
+EOF means end of file
+
+Or
+
+$ bc <<<1+2+3+4		Here string  
+* 10
+
+
+bc is a command for solve math problems which in general requires an input from the keyboard. Using the input redirection you can avoid this. This stuff can be especially useful in script if you have to do some basic elementary math operation
+
+
+
+| OPERATOR
+
+$ grep -v '^#' /etc/login.defs | sort
+
+This way you can sort easly the output of grep
+
+
+If you want a more pretty way to see task and not so many disorder try using colum
+
+
+$ grep -v '^#' /etc/login.defs | sort | column -t
+
+
+

@@ -1,0 +1,166 @@
+SCHEDULE TASK TO RUN AT A SET TIME:
+
+So for example, we could create a job that automatically backs up the database every Sunday at 3 a.m.
+
+We have three ways:
+
+The first is with the cron utility and it's well-suited for repetitive jobs that execute once every few minutes or hours or on specific days
+Anacron, it's also used to create repetitive jobs, but it can't repeat them every few minutes or hours. The smallest unit Anacreaon can work with is the day, so it can repeatedly run tasks every day, every weeks... etc.
+
+Anacron was created because cronjob can miss job if the computer power off, Anacron will execute the job (if it wasn't run at the proper time) when the computer power on. 
+
+The last one is AT, which is focused on task that should only run once.
+
+
+
+# CRON
+
+The syntax is a little bit complicated but you can get a quick reminder by looking at
+
+$ cat /etc/crontab
+
+For example you can write something like the following:
+
+35 6 * * * root /bin/some_command --some_options
+
+The first five values tell CRON when this should be run, the sixth value is a username and then the command and the options.
+Now let's dive a little bit deeper into the first five values which tell cron when to run.
+
+35 is the minute field and it's got a range of 0 to 59
+6 is the hour field and it's got a range of 0 to 23
+The third one is the day of the month (1-31)
+The fourth one is the month (1-12)
+the last one is the day of the week. (0-7) 0 or 7 is Sunday.
+
+
+* = match all possible values
+, = match multiple values (i.e,15,45) (run at minute 15 and minute 45)
+- = range of values (i.e., 2-4) (run at hour 2 am and 3 am and 4 am)
+/ = specifies steps (i.e., */4) ( run every four hours, midnight and 4 am and 8 am and 12 am and 4 pm and 8 pm and midnight again) The step by default is 1 so it moves every hour 2,3,4, etc... 
+
+We can also combine ranges by step. For example if we wanted to run something at only these 3 hours, midnight, 4 a.m and 8 a.m. we could type 0-8/4 in the hour.
+
+We want to run the touch command 
+
+$ which touch
+/usr/bin/touch
+
+We'll edit the user's cron table instead of the system wide cron table. So to edit the user cron table
+
+$ crontab -e
+35 6 * * * /usr/bin/touch test_passed
+
+
+As you can see there is no need to specify the username because Cron sees who the table belongs to and knows to run commands as that user
+
+Other examople
+
+Run every sunday at 3 a.m.  => 0 3 * * 0
+Run the 15th of the month at 3 am => 0 3 15 * *
+Everyday at 3 a.m. => 0 3 * * *
+Once every hour => 0 * * * *
+
+
+To see the crontab of the current user use:
+
+$ crontab -l 
+
+If you want to edit the crontab of another user you can use the -u option at the end of your command
+
+$ sudo crontab -e -u jane
+
+If you want to remove your crontab
+
+$ crontab -r 
+
+Or the crontab of another user
+
+$ sudo crontab -r -u jane
+
+
+We also have an alternate way to set up cron jobs through the use of special directories, for example the directory for daily tasks ( /etc/cron.daily/ ) or hourly (/etc/cron.hourly/) or monthly (/etc/cron.monthly/) or weekly (/etc/cron.weekly/)
+
+
+Image now we have a shell script in a local directory
+N.B. The shell script file should have no extension. If we want to use it as a cron job. So don't use a name like 'script.sh' 
+
+We have our file name 'shellscript'
+
+1 We copy it into the hourly folder
+$ sudo cp shellscript /etc/cron.hourly/
+
+2 Make sure this script is readable or executable
+$ sudo chmod +rx /etc/cron.hourly/shellscript
+
+And that's all
+
+
+
+# ANACRON
+
+When using anacron we don't care which time the job is going to run, we only concern if the job run daily,monthly, or once every few days
+
+$ sudo vim /etc/anacrontab
+
+The syntax for an anacron job is documented in this file.
+You have your period in days, your delay in minutes, your job identifier and the command
+
+# period in days	delay in minutes	Job-identifier							command
+	       3 	              10	      test_job	  	      /usr/bin/touch /root/anacron_created_this
+
+
+3 is period so it means that the job is run every three days 
+
+When Anacron checks to see what needs to run, maybe ten different jobs have been missed because the machine was powered off during that day. It would be a bad idea to run all this job at the same time, so we set a delay so anacron run each job after waiting a specific number of minutes
+10 is the number of minutes anacron will wait for
+
+test_job is the name of the job identifier. You can name your job any way you want.
+
+Just like with cron you have to specify the full name of the command here or the full name of the script we want to run. The command in this job will run as the root user
+
+Other examples:
+
+	       7 	              10	      test_job	  	      /usr/bin/touch /root/anacron_created_this
+	 @weekly 	              10	      test_job	  	      /usr/bin/touch /root/anacron_created_this
+	@monthly 	              10	      test_job	  	      /usr/bin/touch /root/anacron_created_this
+
+
+If you want to check the syntax of your anacron tab is correct
+
+$ anacron -T
+
+If it's corrrect we don't receive any message
+
+
+# AT
+
+With AT command is much easier to schedule a job. We just have to specify when this task is going to run. For example 
+$ at 15:00
+at > /usr/bin/touch file_created_by_at
+
+<Then press CTRL + D to save the job>
+
+Other examples
+$ at 'August 20 2022'
+$ at '2:30 August 20 2022'
+
+Or you can make even some simple expression
+$ at 'now + 30 minutes'
+$ at 'now + 3 hours'
+$ at 'now + 3 days'
+$ at 'now + 3 weeks'
+$ at 'now + 3 months'
+
+To see what jobs are scheduled to run we can use atq
+
+$ atq
+20 	Wed Nov 17...
+
+20 is the job id so if we want to have more specifications about that jobId
+$ at -c 20
+
+
+To delete a schedule job 
+
+$ atrm 20
+

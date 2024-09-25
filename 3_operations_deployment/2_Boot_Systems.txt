@@ -1,0 +1,95 @@
+BOOT, REBOOT, AND SHUTDOWN A SYSTEM SAFELY
+
+To reboot a linux system is always a good choice to use systemctl reboot command
+
+$ systemctl reboot
+
+or to shutdown
+
+$ systemctl poweroff
+
+If you need to kill all the process instanteneously and reboot by force, you can use the command
+
+$ systemctl reboot --force
+
+or
+
+$ systemctl poweroff --force
+
+
+Or if even this won't work as last resource pass --force twice, so something like this:
+
+$ systemctl reboot --force  --force 
+
+$ systemctl poweroff --force --force
+
+In the last case programns does not have even a chance to close properly or save data. This is the same as unplugging the computer from their power source.
+
+You can instruct linux to shutdown or reboot at a specific time for example
+
+$ sudo shutdown 02:00
+
+TO shutdown at 02:00 at night, but you can use any hour in the format 00:00 to 23:59
+
+If instead you want to shutdown after 15 minutes
+
+$ sudo shutdown +15
+
+To reboot instead of poweroff you can use the -r option, so the reboot at 02:00
+
+$ sudo shutdown -r 02:00
+
+
+You can even set a message to the users which log in into the machine, just remember to place it between single quotes:
+
+
+$ sudo shutdown -r 02:00 'Scheduled restart to do ...'
+
+
+
+BOOT OR CHANGE SYSTEM INTO DIFFERENT OPERATING MODES
+
+What is out default boot target? 
+
+If you type
+
+$ systemctl get-default
+* graphical.target
+
+
+So the system is configured to boot into a graphical environment. By reading this file the operativ system knows with program to run and in which order to boot the target. If we want to use the multi-user target
+we can change it in this way:
+
+$ sudo systemctl set-default multi-user.target
+This way is going to boot linux with all services and everything you have configured but the graphical part is going to be skipped. Is called multi-user because in this mode, multiple user can log in and use the system at the same time.
+
+Now to boot into a multi-user target simply reboot
+
+$ systemctl reboot
+
+When then we try to access after the reboot we have just a terminal and not a graphical interface. 
+
+If we want to change the operating modes without setting it the default, and without to reboot the system
+
+$ sudo systemctl isolate graphical.target
+
+
+There are other targets, maybe useful in other circumstances 
+
+ 1 emergency.target
+
+It will run the OS with the lowest number of program possible, if you mount into this target the /root fileSystem will be mount into read only 
+
+ 2 rescue target
+
+
+
+
+INSTALLING CONFIGURING AND TROUBLESHOOT BOOTLOADERS
+
+One of the first program that loads up when we power up the computer is called the bootloader. One purpouse of the bootload is to start the linux kernel, which is the core part of the operating system. One of the most popular boot loader in Linux is called GRUB which stands for Grand Unified Bootloader.
+
+DEMO
+When you first install CentOS from a bootable device it appears 3 options 
+
+ 

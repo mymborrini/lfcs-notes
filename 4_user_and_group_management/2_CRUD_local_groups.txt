@@ -1,0 +1,42 @@
+CRUD LOCAL GROUPS
+
+Each user can belong to one or more groups. 
+
+For example, we have a directory full of files that our developer needs to work on, so they all read and write. We'd have to allow three user accounts to edit these files. An elegant solutions to this problem is to create a new group called Developers. Then we add our three users to the developers group and finally make ther developers group the owner of those files.
+
+A user can belong to multiple groups, but one of the group is special. It is the primary group, while all the others are secondary or supplementary groups. The primary group is also called a login group. That's because as soon as the user logs in this becomes his or her main group. Otherwise said, the program runs with the same privileges that the user account and its primary group have. When the user create a file, this will automatically be owned by the user account and their primary or login group. 
+
+
+For example
+
+$ sudo useradd john
+$ sudo groupadd developers
+
+$ sudo gpasswd --add john developers === sudo gpasswd -a john developers
+$ groups john
+# john: john developers
+(user_account: primary_group secondary groups)
+
+$ sudo gpasswd --delete john developers === sudo gpasswd -d john developers
+
+If we want to change the primary group of a user
+
+$ sudo usermod -gid developers john
+
+$ groups john
+# john: developers
+
+Remember -G option so
+$ sudo usermod -G developers john will change the secondary group and not the primary
+
+
+
+To rename a group
+
+$ sudo groupmod --new-name programmers developers === sudo groupmod -n programmers developers
+
+
+To delete a group
+
+$ sudo groupdel programmers
+# groupdel: cannot remove the primary group of user 'john'

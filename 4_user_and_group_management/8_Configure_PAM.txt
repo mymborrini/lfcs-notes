@@ -1,0 +1,71 @@
+PAM
+
+PAM stands for pluggable authentication module.
+
+This gives us flexibility to determine how we want certain utilities to perform authentication
+
+For example we could make it allow us to log in as root but only if a special USB stick is plugged into the server.
+
+So if we look at /etc/pam.d/
+
+we find an intersting file called su
+
+In the file
+
+auth	required	pam_env.so
+account	sufficient	pam_rootok.so
+auth 	substack	system-auth
+session	include		system-auth
+auth 	sufficient	pam_whell.so	trust 	use_uid
+
+
+These are all authentication module. Whenever we use the su command these authentication modules will be loaded in the order we see. SO in a way we can consider these conditions tested in this order and trying to authenticate a user. 
+
+sufficient means that once this authentication module gives the ok, then authentication is sufficient job done. The list of the module below this line won't be executed if this module authenticate successfully. 
+auth (the first word) established what kind of authentication module this is. It could be:
+
+- account
+- auth
+- password
+- session 
+
+You can find details
+
+$ man pam
+
+In general an auth module is used to establish the identiy of a user or program, so a module like that can also provide extra privileges after successuful authentication. A password module is generally used to update a password or a secret key. And a session module is used to prepare the user session in some way, for example by writing something in a log file. 
+
+The control field (the second column)
+
+- required
+- requisite
+- optional
+- include
+- substack
+- sufficient
+
+For example if we want to force a user to be logged in both by inserting a password and an usb stick. In this case we need to set both modules as required. If we set the usb module as sufficeint then it won't even ask for password. It would simply log in with the usb stick.
+
+Required and requisite are different, Requisite is a much stronger version then required. If both module A and module B are required. If module A fails (maybe because the user put a wrong password) module B will still be executed. If module A is requisite then module B will never be executed in case Moudle A fails.
+ 
+The same happened with sufficient. If module A is sufficient and the user type the correct password, module B will never executed because module A is sufficient. 
+
+
+
+The last part:
+
+pam_whell.so	trust 	use_uid
+
+
+So if we type
+
+$ man pam<space><tab><tab>
+
+A list of all modules will compare and then we can select the module we want
+
+$ man pam_wheel
+
+And then we can find all the instructions if you see trust and use_uid are options related to that pam module
+
+
+

@@ -1,0 +1,86 @@
+Change Kernel Runtime Parameters
+
+
+Runtime parameters is just a fancy term for what are settings for how the Linux kernel does its job internally. Since the kernel deals with low level stuff like allocating memory handling, network traffic and so on.
+
+To see all kernel runtime parameters currently in use, we can use the Sysctl 
+
+$ sudo sysctl -a
+...
+net.ipv6.conf.default.disable_ipv6 = 0
+vm.admin_reserve_kbytes = 8192
+...
+
+
+Everything start with net is some kind of network-related parameter memory-related stuff. 
+Everything start with vm is some kind of virtual memroy related parameter stuff. 
+Everything start with  is some kind of network-related parameter memory-related stuff. 
+
+
+To read a single parameter
+
+$ sudo sysctl <parameter-name>
+
+net.ipv6.conf.default.disable_ipv6 => in this case the disable word means it is an option to disable something. Since it is set to '0' it means that it won't disable anything. To make it disable something we have to set it to '1'
+
+
+$ sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+
+
+-w => is the option to write a value to a parameter and you want to make sure that there is NO SPACE before or after the equal sign.
+
+From now on, this parameter will be set this way, until we reboot the system. 
+
+
+
+So how do we make a change persistent?
+
+
+We have to work with the directory sysctl.d
+To refresh how to work with
+
+$ man sysctl.d
+# SYNOPSIS
+#	/etc/sysctl.d/*.conf
+
+
+Let's take an example with virtual memory
+$ sysctl -a | grep vm
+...
+vm.swappiness = 30
+...
+
+
+Users often configure this parameter when they want to change what Linux does when it starts to run out of free memory. This value can be anything between 0 and 100. A high value will make the kernel use the disk as a sort of virtual memory a bit more often and sooner than really required. A low value will force it to try its best to avoid using using the disk in this way unless necessary. 
+
+So let's say we want to change the value to 29 and make this change persistent.
+The first thing we should do is create a .conf file in the sysctl.d directory and we can give it any filename we want
+
+For example
+
+$ sudo vim /etc/sysctl.d/swap-less.conf
+<<
+vm.swapiness=29
+>>EOF
+
+
+Now everytime our Linux operating system boots, this parameter will be set to the value of 29 
+The parameter value is now persistent, but until the next boot swappingness will still be using the old value of 30. To make it immediatly effective
+
+$ sudo sysctl -p /etc/sysctl.d/swap-less.conf
+
+
+Appendix A.
+
+Free Memory vs Swap Memory
+
+Free Memory:
+Free memory refers to the portion of physical RAM (Random Access Memory) that is currently not being used by any active process.
+This memory is immediately available for allocation to new processes or for caching purposes by the operating system.
+Free memory is crucial for maintaining system responsiveness and performance, as it allows processes to quickly obtain memory when needed without resorting to swapping.
+
+Swap Memory:
+Swap memory, also known as swap space or swap area, is a portion of disk space that is reserved for use as virtual memory by the operating system when physical RAM is fully utilized.
+When the physical RAM is exhausted and additional memory is required, the Linux kernel moves inactive or less frequently used memory pages from RAM to the swap space on the disk.
+Swapping enables the system to free up physical RAM for more actively used processes, preventing out-of-memory errors and allowing the system to continue functioning.
+However, swapping to disk is significantly slower than accessing RAM, which can degrade system performance, especially if there is excessive swapping activity.

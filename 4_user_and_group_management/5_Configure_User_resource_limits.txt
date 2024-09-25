@@ -1,0 +1,60 @@
+When we have a lot of users logging into the system, we may want to impose limits on what resources they can use. This way, we can ensure that user A does not use 80% of the CPU, leaving very little to spare for the others.
+
+$ sudo vi /etc/security/limits.conf
+...
+# <domain> 	<type>		<item>			<value>
+# *		soft		core			0
+# *		hard		rss			10000
+# @student	hard		nproc			20
+# @faculty	soft		nproc			20
+# @faculty	hard		nproc			50
+# ftp		hard		nproc			0
+# @student	-		maxlogins		4
+...
+
+The domain:
+Usually is one of this 3 things:
+ - the username 
+( for example => trinity	hard	nproc	10 )
+ - a group name, for the grouop name we add a @ before the name
+ ( for example => @developers	hard	nproc	10 )
+ - * will match everything ( this means setting a limit for every user on the system, so it's a way to set a default limit, default because this limit will only be applied to every user which is not inside this list )
+ ( for example => *	soft	cpu	5 )
+
+
+
+
+The type:
+Can be one of this 3 value:
+ - hard ( A hard limit cannot be overriden by a regular user )
+If an hard limit say that they cannot run more than 30 processes they cannot go above them. So it's basically the top
+ - soft
+If a user has a soft limit of 10 maximum processes and a hard limit of 20 the following will happens, when he logs in the limit will be set to 10 process, but if the user has some temporary need to increase this, they can raise to 11, 12, 15 or even 20. This way they can get a slight increase when absolutely required so they can MANMUALLY raise it to anything they require, but never above the hard limit
+ - '-'
+This is both hard and a soft limit. With this we're saying our user should be able to run 20 processes at the most.
+
+
+The item:
+decides which this limit is for
+
+- nproc: the numerb of processes
+- fsize: which sets the maximum file size that can be created in this user session. The file is in kB so 1024 means that the maximum file size is 1024 kB. 
+- cpu: sets the limit for CPU time. It is specified in minutes. So when a process uses 100% of a CPU for one second, it will use up one second of its allocated time. If it uses 50% of one core or one second, it will use up 0.5 seconds of its allocation. 
+
+To have more information check
+
+$ man limits.conf
+
+To simulate a login we can type:
+
+
+$ sudo -iu trinity 
+
+The -i option instructs linux to do a real log in and use specifies the user we want to log in as.
+
+If we want to see the limit for our current session 
+
+$ ulimit -a
+
+
+When a soft limit you can only raise with ulimit ONCE, the second time you wanna change it, you can only lower it. 

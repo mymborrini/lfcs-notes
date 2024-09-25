@@ -1,0 +1,165 @@
+SELinux
+
+
+FILES AND DIRECTORIES:
+Control file and directoruies have permissions to decide who can write or execute content. Those forms of security are not enough for today's world of sophisticated cyber attacks.
+
+For example:
+
+A user has permissions on a specific direcotory in which he runs a program such as a web server.
+Hacker breaks her way through the server into the folder. She now has the same permissions the process had for that folder and we'll be able to exploit this vulnerability to perform an attack on the system. 
+Fortunatly the Linux kernel can be easily extended with so called modules, and there is a security module called SELinux that adds very advanced capabilities of restricting access. SELinux is enabled by default on CentOS Stream.
+
+So SELinux allows for very fine grained control of what action should be allowed or denied. How does it make such decisions?
+
+SELinux use a similar file and directories control than the one shows with ls -l
+
+$ ls -l
+-rw-rw-r--. 1 aaron aaron 160 Dec 1 18:19 archive.tar.gz
+
+To check SELinux permissions the option to append to ls command is '-Z'
+
+$ ls -Z
+unconfined_u:object_r:user_home_t:s0 archive.tar.gz
+
+
+
+This string here 
+unconfined_u:object_r:user_home_t:s0
+is called the SELinux context label
+
+These contexts are always desplayed in this order
+user:role:type:level
+
+So in our case:
+
+unconfined_u is the user 
+object_r is the role
+user_home_t is the type
+s0 is the level
+
+SELinux has a policy configuration where users and their roled are defined.
+
+So first let's look at the user and this is not the same as the username you log in with. 
+
+	SELinux User		Roles
+	 developer_u		developer_r,docker_r
+	     guest_u		guest_r
+       	        root		staff_r,sysadm_r,systm_r,unconfined_r
+
+
+Every Linux user who logs in to a system is mapped to a SELinux user as part of the SELinux policy configuration. After the user is identified, a decision is made to see if it can assume the role. Each user can only assume a predefined set of roles.
+
+For example, a user like developer_u should be able to assume roles like developer_r to read and write applications or docker_r to run containers, but they should not be able to enter roles like sysadmn_r.
+
+If the role can be entered next, a check is performed to see if this role ca transition to the type. This type is like a protective software jail. This restriction bubble is called type when dealing with files and domain when dealing with processes. We'll see how process can have labels too, just like files and directories. 
+
+Going through this three step path, the security module achieves three important things. 
+
+. it makes sure that only certain users can enter certain roles and certain types. So it keeps unauthorized users and processes from entering types and domains that are not for them 
+. it lets authorized users and processes do their job by granting the permissions the need
+. Authorized users and processes are allowed to take only a limited set of actions
+. Everything else is denied
+
+This is important because it can protect against the hajack programs.
+
+Image a hacker takes control of the Apache program that serves Web pages to our website visitors. They're still restricted to the SELinux domain, so they aren't able to step out of those boundaries.
+
+So usually the most important part of a Linux context is the type or domain. Also, the level is almost never actively used on a regular system. It generally use if in the same domain, files have different levels of security.
+
+
+PROCESSES:
+And since we mentioned processes can be confined to how to explore SELinux security labels and context. 
+
+$ ps axZ
+...
+system_u:system_r:sshd_t:s0-s0:c0.c1023 	1030 		?		Ss		0:00		/usr/sbin/sshd
+unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 	1875 		?		Ss		0:00		/usr/lib/
+...
+
+
+system_u:system_r:sshd_t
+
+
+So sshd_t dfomain contains a strict set of policies that define what this process is allowed to do. Also important to note, not anything can enter the safe sshd_t domain. In this case onbly files that have the same sshd_execute_t SELinux type in their label can enter this domain. As we can see by type:
+
+$ ls -Z /usr/sbin/sshd
+# system_u:object_r:sshd_exec_t:s0 /usr/sbin/sshd
+
+Everything labeled with unconfined_tx is running unrestricted. SELinux lets those processes do almost anything they want.
+
+
+USEFUL COMMAND
+To see the security context assigned to our current user 
+
+$ id -Z 
+# unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+
+And when we log in the user will log in as is automatically mapped to an SELinux user
+
+To see how this mapping has done we can use this command
+
+$ sudo semanage login -l
+# Login Name	SELinux User	MLS/MCS Range		Service
+#
+# __default__	unconfined_u	s0-s0:c0.c1023		*
+# root		unconfined_u	s0-s0:c0.c1023		*
+
+So output like this means if root logs in it will be mapped to the SELinux user unconfined_u
+If any other user logs in, they'll be mapped to whatever we see on this __default__. In this case it's also unconfined_u.
+
+To see the roles that each user can hove on this system, you'd use the following command
+
+$ sudo semanage user -l
+
+
+An finally to see if SELinux is enabled and actively restricting action, that is to say enforcing security
+
+$ getenforce
+# Enforcing
+
+Only if we see 'enforcing' here it means it's doing its job and denying unauthorized actions.
+'Permissive' means it's allowing everything and just locking actions that should have been restricted instead of denying them
+'Disabled' means it's not doing anything not even logging.
+
+
+To relabel selinux for files and directories chcon is the command you're looking for
+
+$ chcon 
+
+
+$ sudo chcon --help
+# Usage: chcon [OPTION]... CONTEXT FILE...
+#   or:  chcon [OPTION]... [-u USER] [-r ROLE] [-l RANGE] [-t TYPE] FILE...
+#   or:  chcon [OPTION]... --reference=RFILE FILE...
+# Change the SELinux security context of each FILE to CONTEXT.
+# With --reference, change the security context of each FILE to that of RFILE.
+#
+# Mandatory arguments to long options are mandatory for short options too.
+#       --dereference      affect the referent of each symbolic link (this is
+#                          the default), rather than the symbolic link itself
+#   -h, --no-dereference   affect symbolic links instead of any referenced file
+#   -u, --user=USER        set user USER in the target security context
+#   -r, --role=ROLE        set role ROLE in the target security context
+#   -t, --type=TYPE        set type TYPE in the target security context
+#   -l, --range=RANGE      set range RANGE in the target security context
+#       --no-preserve-root  do not treat '/' specially (the default)
+#       --preserve-root    fail to operate recursively on '/'
+#       --reference=RFILE  use RFILE's security context rather than specifying
+#                          a CONTEXT value
+#   -R, --recursive        operate on files and directories recursively
+#   -v, --verbose          output a diagnostic for every file processed
+
+
+So for example to change the type of a file
+
+$ sudo chcon -t httpd_sys_content_t /var/index.html
+
+
+To change the enforce you can use:
+
+$ setenforce [ Enforcing | Permissive | 1 | 0 ]
+
+
+Documentation here:
+https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/selinux_users_and_administrators_guide/sect-security-enhanced_linux-working_with_selinux-selinux_contexts_labeling_files

@@ -1,0 +1,111 @@
+Create Systemd Services
+
+Let's assume we build some sort of application, one that needs to run on servers all the time. The problem with applications is that sometimes they could crash. So we need some eye upon our application to restart it in case it fails.
+
+Also we want to start it when the system boots. 
+
+In a nutshell, the service will manage the entire life cycle of an application according to instructions
+
+We won't build an application, we will build a simple bash script and we save it in /usr/local/bin which is the location for the application not installed by the package manager
+
+/usr/lib/myapp.sh
+<<
+#!/bin/sh
+echo "MyApp Started" | systemd-cat -t MyApp -p info
+sleep 5
+echo "Myapp Crashed" | systemd-cat -t MyApp -p err
+>>
+
+The first line sends a message to the system log stating the myapp started and the systemd-cat this is a utility that receives the message and logs it, the "-t" adds an identifier to the log the "-p" sets the priority of the message 
+
+now make the script executable
+
+$ chmod a+x /usr/local/bin/myapp.sh
+
+Now we have to create the service, to check how to make it 
+
+$ man systemd.service
+Then search for OPTIONS 
+
+and let's see a couple of options that we will use
+
+Restart, will be set it to always (you can configure when or if to restart your app: no,on-failure,on-abort, always)
+RestartSec, configures the time to sleep before restarting a service
+
+Now we have to write the file, we need 3 sections: Unit,Service,Install
+
+It would be difficult to start from scratch. We can copy an existing service from the /lib/systemd/system. So we can get a good starting point by copying one of the file from this location
+
+$ sudo cp /lib/systemd/system/ssh.service /etc/systemd/system/myapp.service
+
+[Unit]
+Description=OpenBSD server daemon
+Documentaion=man:sshd(8) man:sshd_config(5)
+Ater=network.target audit.service
+ConditionPathExists=!/etc/ssh/sshd_not_to_be_run
+
+[Service]
+EnvironmentFile=~/etc/default/ssh
+ExecStartPre=/usr/sbin/sshd -t
+ExecStart=/usr/sbin/sshd -D $SSHD_OPTS
+ExecReload=/usr/sbin/sshd -t
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=notify
+RuntimeDirectory=sshd
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
+Alias=sshd.service
+
+
+
+Now we can modify it:
+
+1 We don't have a documentaion
+2 After is telling the unit system when it should run the service unit. network.target and audit.service, a target is a collection of services that shoudl start together. So in this line we tell systemd to start our service only when all of the network related networking is started and also the audit daemon service. Since is an application we leave the After as it is
+3 ConsditionPathExists is exactly what the name said and we don't need it
+4 EnvironmentFile will list the environment variable from that file and we don't need it
+5 ExecStartPre we can specify a program that should run before our application will be launched ( a similar concepts to initContainers in k8s)
+6 ExecStart this is the command that specifies the command to launch the application
+7 ExecReload what is to be executed when the adminsistrato run the systemctl reload command
+8 KillMode specify how this application should be stopped, so what happened when the administrator run the systemctl stop command. With 'process' we are telling systemd to only kill the main process and not any child process that may eventually be running 
+9 RestartPreventExitStatus tells the system to not restart the sercvice if the application throws an exit code equal to 255
+10 Type notify it means that the application will notify it when it's finished starting up. Our app does not have this ability so we will simple set it to 'simple', type can only be 'one-shot' for the application which does not need to run in background, for example an application that delete some files and then exit because there is nothing less to do, or 'forking' for an application that 
+11 RuntimeDirectory specify the relative path to the directory this application should run it. This can be used to create temporary file or whatever the app might need.
+12 RuntimeDirectoryMode is simply the mode and the accessibility
+13 WantedBy" We need to know what system targets are. Normally a server boots up with a graphical user interface, but multiple user can still log in to a text only interface. To provide this environment whewre multiple user can log in a collection of application  needs to start. The collection is grouped in what is called a multi user target. AS before each target is simply a collection of services that should start up to achieve a certain purpose. With this line we're telling the system that the we want the application to be part of the multi-user.target 
+14 Alias the line simply creates links to our service file in other locations under certain circumstances. In tyhe case of the ssh daemon service this was useful because IT service file exists in the /lin and the alias created a symlink in /etc directory. 
+
+
+[Unit]
+Description=My Application
+Ater=network.target audit.service
+
+[Service]
+ExecStartPre=echo "Systemd is preparing to start MyApp"
+ExecStart=/usr/local/bin/myapp.sh
+KillMode=process
+Restart=always
+RestartSec=1
+Type=simple
+
+[Install]
+WantedBy=multi-user.target
+
+So whenever we add or change a service configuration file we need to reload the system daemon 
+
+$ systemctl daemon-reload 
+
+We start our application
+
+$ systemctl start myapp.service
+
+Now we see the system logs with -f option so we can follow the logs as they are generated
+
+$ journalctl -f 
+
+

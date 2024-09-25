@@ -1,0 +1,181 @@
+Manage Local User Accounts
+
+Each person that needs to log in to our Linux server should have their own separate user account.
+They also get to choose their own settings for whatever tools they use, and it also helps us as administrators.
+
+We can limit the privileges of each user to only what they require to do their job. This can sometimes reduce or prevent the damage when someone accidentally wrties the wrong command and it can help with the overall security of the system. 
+
+It'll be up to us to manage these user accounts (users). So let's dive right in and see how we create a new user on a Linux system 
+
+CREATE
+
+$ sudo useradd <username>
+
+Let's assume for this example the username is 'john'
+
+1 a new user called john is added to the system 
+2 a new group also called john is automatically created . The group john will be set to be the primary group of the user john
+3 A home directory is created with this account at /home/john and this is where  store his personal files and subdirectories plus his program settings.
+4 The default shell will be set to be the program found at /bin/bash. Whenever john logs in this is the application he'll be dropped into. Effectively his entire log in session will run inside this app and all the files from /etc/skel will be copied to the user's home directory
+
+$ ls -a /etc/skel
+# . .. .bash_logout .bash_profile .bashrc
+
+This is also called the 'skeleton directory'
+
+All of these things happen because the operating system is configured to take some default actions for each newly created account 
+
+$ useradd --defaults
+# GROUP=100
+# HOME=/home
+# INACTIVE=-1
+# EXPIRE=
+# SHELL=/bin/bash
+# SKEL=/etc/skel
+# CREATE_MAIL_SPOOL=yes
+
+Other defaults related to account creation can be seen by exploring this file
+
+$ cat /etc/login.defs
+
+We now have an account for john, but how does he login? His account has no password rith now. To set a password for him 
+
+$ sudo passwd john
+# Changing password for user john.
+# New password:
+
+
+If later we want to delete an account:
+
+$ sudo userdel john
+
+Note that this will only delete the user and the group, but john's home directory at /home/john will remain and that's normal because his personal files may still be needed.
+
+
+REMOVE
+
+If we are sure that even his /home/john directory is no longer needed we can use the command:
+
+$ sudo userdel --remove John.
+
+
+If we want to Change the Defaults for example the Shell etc...  
+
+$ sudo useradd --shell /bin/other-shell --home-dir /home/other-directory John
+
+
+These Account Details such as usernames, user IDs, Group IDs, preferred Shells, home directories, are stored in the file 
+
+$ cat /etc/passwd
+# john:x:1001:1001::/home/otherdirectory/:/bin/othershell
+
+The first 1001 is the ID number associated with John's username 
+The next 1001 is the numeric ID of ist Primary Group, 
+/home/otherdirectory/ then we can see the home Directory
+/bin/othershell and the preferred Shell
+
+
+The id will be 1000 for the first user, 1001 for the next one and so on... 
+If we want to specify a different userId we can make it like
+
+$ sudo useradd --uid 1100 Smith
+
+In this case Smith will have the numeric ID 1100 but also the Group called Smith will get a numeric ID of 1100.
+
+If we want to see which Group belongs to each files or directories is simple
+
+$ ls -l 
+
+Or if we want to see the numeric part
+
+$ ls -ln
+
+
+To get more Information About the user currently logged in, just type
+
+$ id
+# uid=1000(aaron) gid=1000(aaron) groups=1000(aaron),10(wheel),1005(family)
+# context=undefined_u:undefined_r:undefined_t:s0-s0:c0.c1023
+
+
+If you want to see just the username you can type
+
+$ whoami
+aaron
+
+Right now we create a user acount, but we can also create a different type of Account called 'System account'
+
+$ sudo useradd --system sysacc
+
+The numeric IDs of System accounts are also numbers smaller than 1000.
+
+User Account are intended for People while System Account are meant for programs. So there will be no home Directory created since it's not needed. Usually daemons use System accounts, we might see something like a database program running under a System Account. 
+
+
+UPDATE
+
+Now we create the user John, but we now want to modify it. 
+
+For example if we want to Change John home Directory 
+
+$ sudo usermod --home /home/otherdirectory --move-home John === $ sudo usermod -d /home/otherdirectry -m John
+
+
+The '--move-home' Option ensures that the old direcotry will be moved or renamed so that John can still. 
+
+To Change the username for John to Jane 
+
+$ sudo usermod --login jane john === $ sudo usermod -l jane john
+
+To Change a user Login Shell
+
+$ sudo usermod --shell /bin/othershell jane === $ sudo usermod -s /bin/othershell jane
+
+
+DISABLE
+
+To disable the Account even temporarely
+
+$ sudo usermod --lock jane === $ sudo usermod -L jane
+
+To unlock it
+
+$ sudo usermod --unlock jane == $ sudo usermod -U jane
+
+We can set a date where the user expires
+
+$ sudo usermod --expiredate 2021-12-10 jane === $ sudo usermod -e 2021-12-10 jane
+
+Date Format: yyyy-mm-dd
+
+To remove an expireation date just use an empty string 
+
+$ sudo usermod --expiredate "" jane
+
+
+We can also set an expiration date on the Password. This is not ehe same as Account expiration. Account expiration completly disable user Login. Password expiration Forces the user to Change Password the next time they log in 
+
+chage = CHange AGE
+
+$ sudo chage --lastday 0 jane === $ sudo chage -d 0 jane
+
+With this command the Password is set as expire immediatly
+
+We can unexpire ther Password with 
+
+$ sudo chage --lastday -1 jane === $ sudo chage -d -1 jane
+
+If we want the user to Change Password every 30 days 
+
+$ sudo chage --maxdays 30 jane === sudo chage -M 30 jane
+
+
+If we want to be sure that the Password never expires we can set Max Days to -1
+
+$ sudo chage --maxdays -l jane
+
+If we want to see the Passwords expiration
+
+$ sudo chage --list jane
+
+

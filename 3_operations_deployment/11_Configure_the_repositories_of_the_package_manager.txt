@@ -1,0 +1,107 @@
+Package Manager: Configure the repositories (DEBIAN)
+
+In most caese the software we need will be found in the official repositories provided by Ubuntu
+
+We could see the default repositories configured for the system by taking a look at the following file
+
+$ sudo vim /etc/apt/sources.list
+
+There are many lines all pretty similar to the followings:
+
+deb http://us.archive.ubuntu.com/ubuntu jammy main restricted
+deb http://us.archive.ubuntu.com/ubuntu jammy-updates main restricted
+deb http://us.archive.ubuntu.com/ubuntu jammy-updates universe
+deb http://us.archive.ubuntu.com/ubuntu jammy multiverse
+
+deb =>  the first word 'deb' tells the package management system that this line will point to a repository containing .deb files. The deb files are packages themselves archives containing various files such as program files, configuration files, documentation, scripts to be run before or after installation and so on. 
+
+http://us.archive.ubuntu.com/ubuntu => this URL is simply the address of the repository that holds all the packages available
+
+jammy => Is the code name for this specific Ubuntu distribution, because Ubuntu version 22.04 is codenamed jammy jellyfish
+
+After the distributuion codename we can have one of these keywords:
+main, universe, multiverse, restricted => This points to what the package manager calls a COMPONENT. You can think of a component as a section or a segment of the entire repository. 
+
+main point to the segment of the packages officialy supported and maintained by the Ubuntu team
+universe point to the packages maintained by volunteers in the community
+multiverse refers to packages that might be in a grey area regarding copyright or legal issue
+restricted point to so-called closed source software. That is software that doesn't give use access to the source code. In  most caes this includes closed source drivers for video cards, sound cards and such
+
+
+Usually on a server we only need main and universe, preferabily only main.
+
+
+In some cases, the software we need won't be  included in the official Ubuntu repositories at all. In other cases the software will be included in Ubuntu's universe section, but it might be a very old version and we may want a newer version. For both these scenarions we can enable third party repositories. That means software repositories that aren't maintained by Ubuntu but by a different team or company.
+
+Let's say we want to install the latest stable version of Docker.
+The first thing we wanna do is download  a public key. When Docker teams upload a new pakcage, they sign it with their private key and with the public key  our package manager can verify the signature.
+This way it makes sure that the packages hasn't been modified by any malicious users
+
+Now download the key simply using the curl utility and save it to a file called docker.key
+
+$ curl "https://download .docker.com/linux/ubuntu/gpg" -o docker.key
+
+Next we'll use the gpg command to transform this key from a text format to a binary format that our package manager can understand. This action is called Dear Moring in GPG terminology, so we'll do:
+
+$ gpg --dearmor docker.key
+
+
+And so the dearmor key will be found in the docker.key.gpg file
+
+Now we'll move this into a directory belonging to our apt package manager, where it keeprs third party public keys to verify package signatures
+
+$ sudo mv docker.key.gpg /etc/apt/keyrings/ or /usr/share/keyrings depending on your Debian Version 
+
+Finally we can add the Docker repository to the apt's configuration.
+
+Let's take a look at the apt directory configuration first. 
+
+$ ls /etc/apt
+# apt.conf.d auth.conf.d keyrings preferences.d sources.list sources.list.curtin.old sources.list.d trusted.gpg.d
+
+Instead of adding a new repository to the sources.list file we can add a new file in the sources.list.d directory. This way we can keep things separated and organize:
+
+sources.list will contain just the default entries and sources.list.d will contain one file for each new repository we add to the system. And when we don't need third party repositories anymore, we can just delete the config file from the directory.
+
+So let's create a new file in there and call it docker.list; The .list extension is important so remember to add it.
+
+$sudo vim /etc/apt/sources.list.d/docker.list
+>>
+deb [signed-by=/etc/apt/keyrings/docker.key.gpg] https://download.docker.com/linux/ubuntu jammy stable
+<< EOF
+
+
+stable in this case is the component we want to cherry pick from the repository, as you can see third part packages use different names then the ubuntu default repositories
+In this case on more thing is required, namely the path to the public key used to verify signatures for packages
+
+Then remember to update the package manager repository
+
+$ sudo apt update
+
+
+PPA
+
+Another type of repositories that ubuntu lets you add are called ppas. Short for personal package archive.  These simplify thwe whole process of adding a third party repository and allow you to create your own third party repository
+
+
+To install one of them
+
+$ sudo add-apt-repository ppa:<username>/<repository-name>
+
+For example
+
+$ sudo add-apt-repository ppa:graphics-drivers/ppa
+
+
+This command takes care of all the details like modifying the app sources.list files, adding the public key used for verifying
+
+
+To list all the repositories
+
+$ add-apt-repository --list
+
+To remove it
+
+$ sudo add-apt-repository --remove ppa:graphics-drivers/ppa
+
+

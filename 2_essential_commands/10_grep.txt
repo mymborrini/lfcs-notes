@@ -1,0 +1,212 @@
+Grep command:
+
+Grep let you search through text file.
+
+$ grep [options] 'search_pattern' file
+
+$ grep 'CentOS' /etc/os-release
+
+If you want to make the search case insensitive just add -i option
+
+$ grep -i 'centos' /etc/os-release
+
+We can also search in texts files in a directory and in subdirectories, to do so add the -r option and specify the folder path, instead of the file path
+
+$ grep -r 'CentOS' /etc/
+
+
+We can also invert search results so searching for lines that do not contain the search_pattern, we can do this by adding the -v option
+
+$ grep -vi 'centos' /etc/os-release
+
+
+Consider the following command 
+
+$ grep -i 'red' /etc/os-release
+
+This will match both 'red' and 'RedHat', but what if we want to match only red? We can add the -w option
+
+$ grep -wi 'red' /etc/os-release
+
+
+
+Grep will print you the lines of the file, if you want to print only the result just type
+
+$ grep -oi 'centos' /etc/os-release
+
+This way it will print only the words
+
+
+
+Analyze text using basic regular expression:
+
+
+Previously we were looking for specific pieces of text like centos but now image we have a documentation splitted in hundreds of file and we need to extract all the IPs address.
+
+Regex Operators
+
+^ 	$	.	*	+	{}	?	|	[]	()	[^]
+
+
+For example let's consider the following file:
+
+$ cat names.txt
+* adam
+* adnan
+* basam
+* samad
+* samuel
+* sheela
+* ravi
+* mausami
+
+
+You want to search for words that start with sam but if you type 
+
+$ grep 'sam' names.txt
+* basam
+* samad
+* samuel
+* mausami
+
+As you can see it returns you all the words which contains sam, not the only one which start with it. 
+
+Adding a regex it works fine
+
+$ grep '^sam' names.txt
+
+It works fine and returns the LINES which start with sam.
+
+The same works for all the regual expression operator.
+
+To specify that you want to search for words and not lines. As before we add the w word
+
+$ grep -wr 'c.t' /etc/
+
+
+The * means the elment can exist once no exist or exist multiple time for example 
+
+let*
+
+files ok
+filettt ok
+
+etc...
+
+The + charchter works in a similar way, except for the fact that the element must exists at least once. 
+
+
+But if you try something like this:
+
+$ grep -r '0+' /etc/
+* KP0+!KP2
+* KP0+!KP1
+
+Definitly not what we want. The reason is that grep use basic regular expression:
+
+In basic regular expressions the meta-characters ?,+.{,|,(,) lose their special meaning: instead use the backslashed versions \?, \+, \{, \|,\(,\)
+
+
+So you have to do something like this:
+
+$ grep -r '0\+' /etc
+ 
+
+If we don't want to remember which kind of expression needs to be backslashed we can use extended regex using the -E option in grep or using egrep
+
+
+
+EXTENDED REGULAR EXPRESSION
+
+$ grep -Er '0+' /etc/
+
+
+In this case it works as expected
+
+Or you can use:
+
+$ egrep -r '0+' /etc/
+
+
+If we want to bind all the strings that contains AT LEAST 3 0s
+
+$ egrep -r '10{3,}' /etc/
+
+The {} represents the number of occurences of the charchter before
+
+If we want to bind all the string that contains AT MOST 3 0s
+
+$ egrep -r '10{,3}' /etc/
+
+
+You can combine the previous two to specify a charchter can have AT LEAST  minum number of occurences and AT MOST  a maximum number of occurrences
+
+$ egrep -r '10{3,5}' /etc/
+
+
+If we want to bind all the string that contains EXACTLY 3 0s
+
+$ egrep -r '0{3}' /etc/
+
+
+
+The question mark means that it can exists once or not at all, If we want to find all text that contains disabled or disable (so the last d is optional)
+
+$ egrep -r 'disabled?' /etc/
+
+
+
+Match one thing or the other (enabled or disabled)
+
+$ egrep -r 'enabled|disabled' /etc/
+
+or (enable,disable,enabled,disabled)
+
+$ egrep -r 'enabled?|disabled?' /etc/
+
+
+
+Range or Sets
+
+[a-z][0-9] etc...
+or even like this
+
+
+[abz954]
+
+For example if you need to list all the words cat or cut
+
+$ egrep -r 'c[au]t' /etc/
+
+If we need to match all /dev/... whichb does not contain number at start
+
+$ egrep -r '/dev/[a-z]*' /etc/
+
+
+
+() Subexpression
+
+If you need that letters and numbers are repeatly so you have to match something like this
+
+asdasdas0sajd8sassa1sda2d
+
+If you use simple this:
+
+$ egrep -r '/dev/[a-z]*[0-9]?' 
+
+You will match simply this one asdasdas0
+
+What if we put an * at the end? THis is not good since the * will take only the previous charachter only. The right solution is to put prenthesis around 
+([a-z]*[0-9]?)*
+
+
+This will include only lower case level:
+
+(([a-z]|[A-Z])*[0-9]?)*
+
+
+
+To negate for example you only want to filter for http and excluding https
+
+$ egrep -r 'http[^s]' /etc/
+

@@ -1,0 +1,195 @@
+Search for files in Linux
+
+Files are organized 
+if you want to configure your ssh daemon you have to go to ssh/etc:
+if you want to find log errors you should go to /var/log
+
+
+So why do we need a search for files?
+
+Image you have a website where you want to find all your jpg files.
+For example is the website is in the folder /usr/share, the command 
+
+$ find /usr/share/ -name '*.jpg'
+* 1.jpg 2.jpg 3.jpg
+
+
+
+In a different scenario this server is hosting VM. Each VM has files but they have to be less than 10 Mi. How do we filter for the size of a file?
+Find help us in this way as well
+
+$ find /lib64 -size +10M
+* large-file.txt
+
+
+Or when you upload an application and you are curious to see which files are changed in the last minute ( for example you just pull it)
+
+$ find /dev/ -mmin -1
+* abc.txt
+
+
+
+The find command synopsis is something like this:
+
+$ find [/path/to/directory] [search_parameters]
+
+
+For example
+
+$ find /bin/ -name file1.txt
+
+In this case your looking for a file in the bin directory whose name is file1.txt.  If you specify no path it will search in the current directory.
+
+$ find -name file1.txt
+
+
+To remind that you have to specify the directory before entering the filename think about it in this way: you have to enter the room before searching for a key. 
+
+
+DIRECTORY SAMPLE
+
+Let's take a better look at the search parameters. Image having the following folder and the following files:
+
+/
+
+felix 	Felix	freya	fin	James
+10kb		512kb	1024kb
+
+
+SEARCH FOR NAME
+For example if you type
+
+$ find -name felix
+
+In this case we are looking for a file named felix. Consider that this search is case sensitive, so 'felix' is found and 'Felix' is not. If you want to make it case insensitive
+
+$ find -iname felix
+* felix 	Felix
+
+
+If you want to find all the files that follow a wildcard, for example looking for all the files which starts with the f letter
+
+$ find -name "f*"
+
+
+SEARCH FOR MODIFICATION TIME
+A we seen before, if you want to find all the files which are recently modified 
+
+$ find -mmin [minute]		# mmin -> modified minute
+
+So for example if you type
+
+$ find -mmin 5  # This will find all the files modified in that minute only
+$ find -mmin -5	# This will find all the files that were modified FROM 5 minutes ago TO now
+$ find -mmin +5 # This will find all the files that were modified BEFORE 5 minutes ago and FROM the start of time. So any files that were modified more than 5 minutes ago will be listed.
+
+
+A similar option is mtime, that allows you to find the files modified in the last days
+
+$ find -mtime 0 # This will list for the past 24 hours
+$ find -mtime 1 # This will list for file modified from the past 24 hours and the past 48 hours
+
+
+N.B. Modification means editing or creating of file. 
+
+Modified Time is different from Change Time. 
+
+
+SEARCH FOR CHANGE TIME
+Change Time refers to when metadata has been changed. This is a file, so it's metadata could be permissions data. 
+
+So the same command in finds can also be applied to change time.
+
+$ find -cmin 2
+
+
+SEARCH FOR SIZE
+As we seen before we use 
+
+$ find -size [size]
+
+
+$ find -size 512k 	# this will look for the exact size
+* freya
+
+
+512(k) k stays for kilobytes
+
+Let's look at a table for letter to unit relation
+
+c	bytes
+k	kilobytes
+M	megabytes
+G	gigabytes
+
+
+
+$ find -size +512k	# this will look for a greater size
+$ find -size -512k	# this will look for less than 512k
+
+
+SEARCH FOR EXPRESSION
+
+we can concatenate all of this, for example to create an AND filter just concatenate it
+
+$ find -name "f*" -size 512k
+
+For the OR expression add the -o, so something like this
+
+$ find -name "f*" -o -size 512k
+
+
+If you want to introduce the NOT operator
+
+$ find -not -name "f*"	# NOT operator
+$ find \! -name "f*"	# alternate NOT operator
+
+'\' char is generally used as an escape charachter.
+
+
+SEARCH FOR PERMISSIONS
+
+$ find -perm 664 	# find files with exaclty 664			or 	$ find -perm u=rw,g=rw,o=r
+$ find -perm -664 	# find files with at least 664 permissions	or	$ find -perm -u=rw,g=rw,o=r
+$ find -perm /664 	# find file with any of this permissions	or	$ find -perm /u=rw,g=rw,o=r
+
+Consider the last 2 find expression:
+
+If we have a file that you can read but cannot write (444) it will exclude by 
+$ find -perm -664 	
+because the owner and the group must have at least the read + write permission (6)
+
+Instead it will be included by
+$ find -perm /664
+because others (o) can read it.
+
+
+
+Of course, you can use expression before permissions:
+
+$ find \! -perm -o=r 
+
+It means find all the files that others cannot read
+
+SEARCH FOR TYPE
+
+You can search for different types (b,c,d,l,p,f,s)
+
+for example to search only for directories
+
+$ find -type d
+
+To see how many records the search functions returns 
+
+$ find ... | wc -l 
+
+Which is wc (word count) -l (line)
+
+
+
+
+
+
+
+
+

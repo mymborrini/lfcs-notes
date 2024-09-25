@@ -1,0 +1,46 @@
+Slides: From 18
+Login Methods:
+
+Local text-mode console
+Local graphical-mode console
+Remote text-mode console
+Remote graphical mode console
+
+The console is just  a screen where your OS displays some text
+Terminal Emulator is just an app that runs in a window and does a similar thing to a console
+Virtual Terminal is the same as before but with virtual environment
+
+
+Computers can be costly. It could be a good way to buy different physical devices, one for each person and then each person can connect to a main bigger computer, operate and display stuff through a terminal. 
+
+LOCAL 
+In case of a GUI is pretty easy is like any other operating system; but
+most often you login to remote system. Generally when linux is installed on a system is installed without a GUI.
+
+In this case, a console like this can appear:
+
+$ login: <your-username>
+$ password: <your-password>
+
+...
+
+$ exit [to logout]
+
+REMOTE
+It's rare but Linux may be remotely installed with a GUI, in this case, you need to download the proper VNC client to connect with it or if you are a Windows user you can use a RDP (Remote Desktop Protocol).
+
+In most cases, Linux will be installed without a GUI, in this case you will connect to it with the standard ssh. All linux have an open ssh daemon. To find out which ip is linked to this computer you can simply open the console on the computer you want to connect with (the server)  and type 
+
+$ ip a
+
+FInd the network you share with it and check the ip address.
+
+So you have a server which host an ssh daemon and your computer with an ssh client.
+
+You connect to a remote system through
+
+ssh <username>@<ip-address> 
+
+
+
+

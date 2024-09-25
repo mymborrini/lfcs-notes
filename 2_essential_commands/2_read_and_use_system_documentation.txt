@@ -1,0 +1,128 @@
+Linux give you a lot of way to access documentation about each command:
+
+For example:
+
+$ ls --help
+
+
+will show you every options of using ls , which is a very simple command
+
+Another more complex command is journalctl which is the command used to read operating system logs (very useful) 
+
+$ journalctl --help
+* journalctl [OPTIOSN...] [MATCHES...]
+* ....
+* lines 1-27
+
+At the bottom of the help screen you will see that the help page is paginated. So you can use
+
+Arrow up '^', Arrow down 'v', Page Up, Page down to move through the lines. 
+At the end you can type 'q' to exit from the help.
+
+All the main command in linux have their own manual in pages
+
+To access the manual you can type
+
+$ man <command-name>
+
+For exampple
+
+$ man journalctl
+
+will show the manual for this command with the synopsis (aka the way the command is used)
+* journalctl [OPTIOSN...] [MATCHES...]
+
+And a description about the command does. And some examples sometimes.
+
+Sometimes like the command printf, the command can mean different things. Printf fior example can be a command but also a function that can be used in bash programs. 
+Manual pages can belgong into one of this categories or section and we can see this by looking at the manual pages for the man command
+
+$ man man
+
+* The table blow shows the section numbers of the manual followed by the types of pages they contain.
+*
+* 1 Executable programs or shell commands
+* 2 System calls (functionsprovided by the kernel)
+* 3 Library calls (function within program libraries)
+* 4 Special files (usually found in /dev)
+* 5 File formats anc conventions eg /etc/passwd
+* 6 Games
+* 7 Miscellaeous (including macro packages and conventions), e.g. man (7), groff(7)
+* 8 System administration commands (usually only for root)
+* 9 Kernel routines [Non standard]
+
+You tell man you wnat the print f for section 1 like this
+
+$ man 1 printf
+
+If you want the function
+
+$ man 3 printf
+
+
+Now image you forget the name of a command, for example the command for creating a new directory.
+
+apropos is a command which check in the description of all the manual pages and look for the word you inserted. In the example before
+
+$ apropos director
+
+N.B. We choose director and not directory because director will match both directory and directories
+
+The first time we ran apropos an error appears
+
+$ apropos director
+* director: nothing appropriate
+
+If we just started the VM the database where apropos is looking at is not been created yet, because the manual pages still need to be indexed.   
+
+We can create it manually by typing
+
+$ sudo mandb
+
+(In general this should be done automatically and there is no need to do such a thing)                                                                                                             
+
+
+$ apropos director
+* ...
+* mkdir (1) - make directories
+* mkdir (2) - make directories
+* ...
+
+Apropos just not simply list commands, but it looks for a lot of descriptions functions ecc... so the number isnide the paranthessis represents those sections .
+In the example before since commands are in section 1 and 8 we must search in this two sections
+
+We can do it by using the '-s' optiosn
+
+
+$ apropos -s 1,8 director
+
+THis will filter the sections only for 1 and 8
+
+
+
+AUTOCOMPLETIONS
+
+Another thing that will save you a lot of time is autocompletion
+
+TO use it (for example the command systemctl) you can press 
+$ 'systemc' and then p[ress TAB to complete your word
+
+
+ANother way to use TAB is for a suggestion of command you can use, for example
+
+$ systemctl <SPACE> and the press double time TAB TAB
+
+And a lot of list of commands will display to help you complete the command you want
+
+
+Let's choose
+$ systemctl list-dependencies 
+
+Tab for suggestion and autocompletiosn helps you even in completing tab and filenames
+
+To sell all files and directories press TAB three times. 
+
+
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
+

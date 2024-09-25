@@ -1,0 +1,248 @@
+ARCHIVE BACKUP COMPRESS UNPACK UNCOMPRESS FILES
+
+Imagine having a website with thousands of files and directories; you don't want to lose anything so you create what is called an Archive:
+
+Generally you follow 3 steps:
+
+1 Packing everything, you create a backup.tar from your directtories 
+2 Compress everything, you compress your backup.tar and create a backup.tar.gz
+3 Backup. You copy your files to a secure location to store it safely
+
+
+
+PACKING
+
+The name tar comes from tape archive. Tar is a packer and unpacker. It can take millions of files or directories and pack all in a single .tar file also called TARBALL.
+
+If you want to see the content of a .tar file you have 3 options
+
+$ tar --list --file archieve.tar
+* file1
+* file2
+* file3
+
+$ tar -tf archieve.tar
+* file1
+* file2
+* file3
+
+
+$ tar tf archieve.tar
+* file1
+* file2
+* file3
+
+
+It's a little but peculiar since the letter 't' is used for listing. The most important thing is that the --file ('f') MUST BE PLACED at the very end of your options list.
+
+If you want to pack a file (to archive it)
+
+$ tar --create --file archive.tar file1
+
+or 
+
+$ tar cf archive.tar file1
+
+
+
+If you want to add a file into a tar archive
+
+$ tar --append --file archive.tar file 2
+
+or
+
+$ tar rf archive.tar file2
+
+
+To work with an entire directory you can use a command similar to the previous one:
+
+$  tar --create --file archive.tar Pictures/
+* Pictures/
+* Pictures/family_dog.jpg
+
+
+Here the path that you are using is really important because is the path that will be used in the archive
+
+For example, if you use an absolute path in the archieve will be saved under an absolute path walkpath
+
+$  tar --create --file archive.tar /home/<username>/Pictures/
+* /home/<username>/Pictures/
+* /home/<username>/Pictures/family_dog.jpg
+
+
+If you need to extract files:
+
+$  tar --extract --file archive.tar
+* /home/<username>/Pictures/
+* /home/<username>/Pictures/family_dog.jpg
+
+or 
+
+$  tar xf archive.tar 
+* /home/<username>/Pictures/
+* /home/<username>/Pictures/family_dog.jpg
+
+'x' stays for extract.
+
+This is important because the file will be extrancted in THE CURRENT DIRECTORY PLUS THE PATH IN THE ARCHIVE FILE.
+
+In the example above, if we extract in the mattia user directory /home/mattia and the previous username was aaron, the structure of the folder will be something like the following
+
+/home/mattia/home/aaron/Pictures/
+/home/mattia/home/aaron/Pictures/family_dog.jpg
+
+What if we want to extract a file in another directory? You can specify it with the --directory (or -C) option
+
+$  tar xf archive.tar  --directory /tmp/ 
+$  tar xf archive.tar -C /tmp/
+
+
+Remember, tar keeps also the metadata information of the file like permissions etc... if you want the permission is resetted, use the sudo command.
+
+$ sudo tar xf archive.tar  --directory /tmp/ 
+
+
+If you want you can use -P option for the --absolute-names
+
+
+COMPRESS and DECOMPRESS
+
+Compress files is really useful because it allows us to transfer files to a system to another much faster. More Linux distribution have at least 3 compression/decompression utilities utils pre installed:
+
+gzip
+bzip2
+xz
+
+Compressing a file is super easy:
+
+$ gzip file1
+* file1.gz
+
+or
+
+$ bzip2 file2
+* file2.bz2
+
+or
+
+$ xz file3
+* file3.xz
+
+This will compress as file and automatically delete the original file after
+
+
+Decompressing it is easy as before:
+
+$ gunzip file1.gz  	(gzip --decompress file1.gz)
+* file1
+
+$ bunzip file2.bz2	(bzip2 --decompress file2.bz2)
+* file2
+
+$ unxz file3.xz		(xz --decompress file3.xz)
+* file3
+
+
+As before when we decompressed the original file compress will be deleted. Sometimes the automatic deletion of this file is undesiderable.
+
+For gzip, for example, you can check it with --help and you can see that you can add the option -k
+
+$ gzip --keep file1
+* file1 	file1.gz
+
+$ bzip2	--keep file2
+* file2		file2.bz2
+
+$ xz	--keep file3
+* file3		file3.xz
+
+
+These utilities are the most often used, but sometimes you can encounter zip. 
+
+To create an archieve called archieve.zip 
+
+$ zip archive file1 ( or zip archive.zip file1)
+* adding: file1 (deflated 40%)
+
+This will create the same file, same content, same compression method
+
+To archive and compress an entire directory you can use 
+
+$ zip -r archive.zip Pictures/
+* adding: Pictures/ (stored 0%)
+* adding: Pictures/family_dog.jpg (stored 0%)
+
+The '-r' stays for recursively
+
+To unpack and decompress a zip file use unzip;
+
+$ unzip archive.zip 
+
+
+N.B.
+Zip supports both packing and compressing
+Gzip, Bzip2, and xz has no option to take a directory and set it into a single archive, it cannot pack multiple files into a single file; it can only compress a single file it cannot pack anything
+So they come up with another utility TAR, the same used for packing.
+
+We can tell tar to packing and compress like so:
+
+$ tar --create --gzip --file archive.tar.gz file1 (or tar czf archive.tar.gz file1)
+$ tar --create --bzip2 --file archive.tar.gz file1 (or tar cjf archive.tar.bz2 file1)
+$ tar --create --xz --file archive.tar.gz file1 (or tar cJf archive.tar.xz file1)
+
+
+Or tar has an automatic way to detect which compression tool used based on the extensions of the file
+
+$ tar --create --autocompress --file archive.tar.gz file1 	(In this case gzip will be used)
+or 
+$ tar caf archive.xz file1 	(In this case xz will be used)
+
+To extract and decompress
+
+$ tar --extract --file archive.tar.gz
+or
+$ tar xf archive.tar.gz file1
+
+
+
+BACKUP
+
+There are a lot of tools that are available today on the market. But let's see of what Linux offers natively:
+
+rsync = remote synchronization
+
+This tool allow a directory on a Local Server to be synchronized to a directory on a Remote Server. The Remote Server must have an ssh daemon running on it.
+
+To use it
+
+$ rsync -a <local-directory>/ <username>@<ip-address>:<remote-directory>
+
+For example:
+
+$ rsync -a Pictures/ aaron@9.9.9.9:/home/aaron/Pictures/
+
+
+MAKE SURE TO HAVE A '/' AT THE END OF YOUR DIRECTORY NAME	
+
+If you have the necessity you can synchronized two local directory.
+
+$ rsync -a Pictures/	/Backups/Pictures/
+
+
+Instead of Backing up files or directories, you may want to back up an entire Disk image partition. In this case, you don't care about files and folders, you simply copy and paste bits.
+Instead of using rsync 
+
+An example:
+
+$ sudo dd if=/dev/vda of=diskimage.raw bs=1M status=progress
+
+sudo 
+dd 	is the program
+if	 the path to disk or partition
+of 	is the filename output
+bs	The block size (will speed up the progress)
+status	This tell dd to show you the progress 
+
+If you want to reverse this operation simply reverse this operation
+
+$ sudo dd if=diskimage.raw of=/dev/vda  bs=1M status=progress

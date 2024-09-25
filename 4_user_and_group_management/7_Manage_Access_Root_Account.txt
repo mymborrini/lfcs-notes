@@ -1,0 +1,47 @@
+Manage Access to Root Account
+
+To login as root, for user with sudo priviledges
+
+$ sudo --login === sudo -i
+
+To exit
+
+$ logout
+
+If the user has not sudo priviledges but knows root password it can use
+
+$ su - === su -l === su --login
+
+If a user has a root user locked it does not mean that we can't use the root user but we can't do a regular login with a password. 
+
+So this is ok
+
+$ sudo --login
+
+And this is not ok
+
+$ su -
+
+
+
+If we wanto to allow people to log in as root with a password, we have two options
+
+We can set a new password
+
+$ sudo passwd root
+
+or we can unlock it if it was unlocked in the past
+
+$ sudo passwd --unlock root === sudo passwd -u root
+
+Then we can use
+
+$ su -
+
+And type the password to log in
+
+To lock root account
+
+$ sudo passwd --lock root === sudo passwd -l root
+
+Make sure to only lock rqoot if your user can use sudo commands. With no root login and no sudo you find yourseld in the situation of not being able to become root at all, effectively locking yourself.

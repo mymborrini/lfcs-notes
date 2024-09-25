@@ -1,0 +1,7 @@
+Configure Linux to use LDAP:
+
+Linux keeps user account and information stored locally so for example:
+
+$ cat /etc/passwd
+
+user1:.... a lot of imformation

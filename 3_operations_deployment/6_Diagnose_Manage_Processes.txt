@@ -1,0 +1,274 @@
+Diagnose and Manage Processes
+
+Whenever you lunch a progrqam it lives as a so called process on the operating system, and that is until it finishes its job or it's closed
+
+Whne you type 
+$ls
+
+a short live process will create. The process for ls displazys a directory content and as soon as the job is finished, the process is closed.
+The ssh daemon has a longer life and it usually running ontinuously on a Linux server.
+
+
+## PS
+
+The command to inspect processes is ps
+
+$ ps
+
+which is a little bit weird because it supports two kinds of syntax:
+
+It supports having its command flags, our command options with a dash '-' in front of them or without. If you use the - that's Unix style syntax and without is the BSD style syntax and the options have completely different effects. 
+
+For example:
+
+$ ps -a 
+
+will be way different then 
+
+$ ps a
+
+For more information details you can always check the man command for peace
+
+If you run ps without any options 
+
+$ ps
+PID 	TTY		TIME		CMD
+7726	pts/0		00:00:00	bash
+7796	pts/0		00:00:00	ps
+
+By default, ps is only going to show us processes that are launched in our current terminal window or session.
+
+To show all the processes we have to combine 3 options [a,x, u]
+
+The 'ax' combination makes ps display all processes and the 'u' lists the process in a user-oriented format. So it adds a useful column to the output where we can see things like memory and CPU usage.
+
+As always with 
+
+$ man ps
+
+In the EXAMPLES session, you'll see some very useful command
+
+To print a process tree:
+
+$ ps axjf
+
+To get info about threads:
+
+$ ps axms
+
+To get security info
+
+$ ps axZ
+
+
+Try to get the most from the command ps aux
+
+It will show processes sorted by the processId
+
+USER	PID	%CPU	%MEM	VSZ	RSS	TTY	STAT	START	TIME	COMMAND
+root 	1	0.0	0.3  241296   14000	?	Ss	Mar23	0:01	/usr/lib/system
+root 	2	0.0	0.0  	  0	  0	?	S	Mar23	0:00	[kthreadd]	
+
+
+Let's take a look at the column
+
+USER is the user under which the process has run 
+%CPU is the percent related to 1 CPU so if you find a process with 150% meaning one full core is used, but also 50% of the capacity of a second one
+%MEM is the percent of the memory used
+START show us the date at which the process was started 
+TIME shows us how much CPU time is used during the lifetime of that process. Even if a process started 6 hours ago, it might have only used 3 seconds of CPU time during its lifetime, the rest of the time is spent in a sleeping state using 0% of the CPU. To get one second here the process needs to use 100% of one CPU core for an entire second. If it were to use 50% of one CPU core for 10 seconds, it would usually get about 5 seconds recorded in that column.
+COMMAND the exact command used including the options to start the process. One thing to notice is that some command are in square brackets. These are kernel processes running inside of a privileged area of the linux kernel, so we useually don't need to interact with these as the kernel manages them internally and will only deal with normal processes running outside of this privileged area called user space. These process are the ones that are not wrapped between the square brackets.
+
+
+If we know the id of the process ( for example 1) we can use in a command like this
+
+$ ps 1
+
+Or in a user format
+
+$ ps u 1
+
+If we want to see the process started by a specific user we can use the -U option
+
+$ ps -U aaron
+
+Sometimes we want to explore process that have specific names, for example any process that contains syslog in its name
+
+$ pgrep -a syslog
+1455 /usr/sbin/rsyslogd -n
+
+
+## TOP
+
+ps only shows us the process running in the moment the command is launched. If we want to see the process at runtime we have to use another command. The 'top' command
+
+$ top
+[...information...]
+	PID	USER	PR	NI	VIRT		RES		SHR	S	%CPU	%MEM		TIME+		COMMAND
+       6601    AARIB	20       0    3142460	     185096	     104268	s	 6.2	 4.8	      0:06.60	       gnome-s+
+
+
+by default top is going to constantly reorder processes int he list to show the most CPU intensive. You can navigate in the process list using the arrow keys or page up and page down 
+The information above the list of processes referred to things like our load average and the CPU usage on our system, the memory usage, the swap usage etc...
+
+
+## NICENESS
+
+Another thing we are going to be concerned about is the process niceness.
+On linux there is thic concept of process niceness and that is how nice a process is to other processes. The niceness value can be a number between -20 and +19. The lower the number the less nice it is. Otherwise said, a lower number is going to mean a higher priority for that process.
+
+So consider like process A with a nice value of -20 and a process B with a nice value of 19. Both of this are running at the same time and need to use all CPU resources available.
+Process A will leave very little resources available for process B, A might use up the CPU 90% of the time, while B will get very little CPU time only when there's something left to spare. We want important processes to have higher priority so we're going to assign them lower nice values and there are two ways that this can be done:
+
+When we lauch a process we can specify it
+
+$ nice -n 11 bash
+
+
+In the ps we can use the L option lowercase that turns on the BSD long format output, which includes nice values
+
+$ ps l
+$ ps lax
+
+... NI ....
+
+The NI column show use nice values
+
+A regular user can only assign nice values between zero and 19. To assign lower values for a higher priority, we have to use root privileges
+
+
+If you want to set a new value of niceness 
+
+$ sudo renice <nicenessvalue> <processId>
+
+
+## Signals
+
+Signals are like high-priority messages that tell processes, to stop what you are doing we have this special request for you. But applications will only act on a specific signal if they were programmed specifically to respond to that signal. So the only exceptions are the signals called sig stop and sig kill. This two cannot be ignore.
+
+To see all the specific signals:
+
+$ kill -L
+
+It will return a list of signal names and numeric values representing each signal. So when we use a signal to send we can use the name from the list so we cloud type a SIGHUP, which is for hang up. But we can also omit the sig prefix and just type HUP.
+
+So for example we have our ssh service which has a PID 1147
+
+$ kill -SIGHUP 1147
+
+N.B. we can only send signals to processes which is running under our current user.
+
+If we check the status of the application
+
+$ systemctl status ssh.service
+
+We can see in the log the following lines:
+
+: StartedOpenSSH server daemon
+: Received SIGHUP: restarting.
+: Server listening on 0.0.0.0 port 22
+: Server listerning on :: port 22
+...
+
+
+So ssh when receive the ssh signal will restart itself
+
+In the case before we have three way to send the signals:
+
+$ kill -SIGHUP 1147
+$ kill -HUP 1147
+$ kill -1 1147
+
+For example, we want to send a SIGKILL signal (9) to all the bash processes
+
+$ pgrep -a bash
+7726 bash
+8062 bash
+8098 bash
+
+$ pkill -kill bash
+
+
+So with the pkill process we can kill multile process selected by names.
+
+Another way to kill a process is the CTRL + C
+
+
+Another useful staff you can make with signals
+
+If you start editing a file with vim, and you want to STOP IT
+So you can look at somthingh etc... you can just type CTRL + Z
+
+Once we have finished what we want to do we can return to the paused app using the  fg command (fg stands for ForGround)
+
+$ fg 
+
+
+Remember:
+
+CTRL + C and CTRL + Z, won't work for any program and when you use CTRL + Z the program will be completly frozen it won't make anything in the background
+
+If we want to run the application in BackGround we have to add the '&' char at the end of the command
+
+$ sleep 300 &
+
+
+To check if we have any program which is in background 
+
+$ jobs
+[1]+	Running		sleep 300 &
+
+
+If we want to get back to this job
+$ fg 1
+sleep 300
+
+Now you're stucked in this program, how to detach and makes it run in background? Because if we press CTRL + Z, it will stuck in the background
+
+We can press CTRL + Z  and then the jobs command
+
+$ jobs
+[1]+	Stopped 	sleep	300
+
+
+To make it run in the background again, run the bg command
+
+$ bg 1
+$ jobs
+[1]+	Running		sleep 300 &
+
+
+Sometimes we want to see what files or directories the processes are using right now
+
+For example the bash process
+
+$ pgrep -a bash
+8401	bash
+
+$ lsof -p 8401
+
+It will returns all the open and used file and directories in the bash process.
+
+We can also make the opposite. Given a file, which process is using it?
+
+$ lsof <filename>
+
+remember, even lsof shows only the process for the current user. So it's a good idea to use it with sudo
+
+$ sudo lsof /var/log/messages
+COMMAND 	PID	USER	FD	TYPE	DEVICE		SIZE/OFF		NODE	NAME
+rsyslogd       1455	root	7w	 REG	 253,0	  	  168083	    50504595	/var/log/messages
+
+
+
+
+
+
+
+
+
+
+
+
+
+

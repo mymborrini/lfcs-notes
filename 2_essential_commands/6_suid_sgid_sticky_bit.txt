@@ -1,0 +1,110 @@
+SUID bit ---> SET USER ID BIT
+
+Set user identification bit.
+
+When this bit is set to 1 it means that when the file is executed, is executed as the owner of the file. Instead of the user who is currently executing the file.  
+
+Let's start with creating a file
+
+$ touch suidfile
+
+$ chmod 4664 suidfile
+
+All you need to enable suid is to set a 4 before the CHMOD (664)
+If now you take a look at the permissions of the file
+
+* -rwSrw-r--	aaron	aaron	0	Apr 26	05:08	suidfile
+
+
+As you can see the S is capital which means that suid is enabled but there is no execute permissions
+
+
+$ chmod 4764 suidfile
+
+* -rwsrw-r--	aaron	aaron	0	Apr 26	05:08	suidfile
+
+As you can see the s is not capital anymore which means that the suid is enabled and the file has execute permissions
+So everytime the file is executed is executed as the aaron user. 
+
+
+
+SGID bit ----> SET GROUP ID BIT
+
+As before
+
+$ touch sgidfile
+
+$ chmod 2664 sgidfile 
+
+The command is more or less the same, we place a 2 before the CHMOD instead of a 4
+
+* -rw-rwSr--	aaron	aaron	0	Apr 26	05:08	sgidfile
+
+As before a capital S means that the sgid options is enabled but the file is not executable.
+
+$ chmod 2674 sgidfile
+
+* -rw-rwsr--	aaron	aaron	0	Apr 26	05:08	sgidfile
+
+It becomes a lowercase s
+
+
+Let's start checking for another command find
+
+You can filter particular file inside a folder by determinating filters
+
+For example if you want to filter for suid files
+
+$ find . -perm /4000
+* ./suidfile
+
+or for sgid files
+
+$ find . -perm/2000
+* ./sgidfile
+
+
+You can of course specify both suid and sgid 
+
+(4 + 2 is 6)
+
+$ touch both
+$ chmod 6664 both
+* -rwSrwSr--.	1	aaron	aaron	0	Apr 26	05:13 both
+
+$ find . -perm /6000
+* ./suidfile
+* ./sgidfile
+* ./both
+
+
+STICKY BIT 
+
+It means that if the sticky bit is set upon a directory, no matter the permissions upon the direcotry only the owner of a file can remove the file inside that direcotry.
+
+So create a directory stickydir
+
+$ mkdir stickydir 
+
+$ chmod +t stickydir
+or
+
+$ chmod 1777 stickydir
+
+
+So it's similar to what you did for suid and sgid but use the 1 behind everything]
+
+- ls -ld stickydir
+* drwxrwzxrwt . 2	
+
+A lowercase t because the stickybit is set and the executable bit is set. 
+
+If we remove the executable bit
+
+$ chmod 1666 stickydir
+
+$ ls -ld stickydir
+* drw-rw-rwT. 2 	aaron	aaron 	6 Apr	26	05:14	stickydir
+
+
+
