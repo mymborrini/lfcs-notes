@@ -27,7 +27,8 @@ $ password: <your-password>
 $ exit [to logout]
 
 REMOTE
-It's rare but Linux may be remotely installed with a GUI, in this case, you need to download the proper VNC client to connect with it or if you are a Windows user you can use a RDP (Remote Desktop Protocol).
+It's rare but Linux may be remotely installed with a GUI, in this case, you need to download the proper client that who configured the server has think to use.
+For example, VNC client to connect with it or if you are a Windows user you can use a RDP (Remote Desktop Protocol).
 
 In most cases, Linux will be installed without a GUI, in this case you will connect to it with the standard ssh. All linux have an open ssh daemon. To find out which ip is linked to this computer you can simply open the console on the computer you want to connect with (the server)  and type 
 
