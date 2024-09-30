@@ -1,0 +1,264 @@
+List Create Delete Modify Physical Storage Partitions
+
+
+Let's image we have 2 TB SSD. We want to install both windows and ubuntu.
+That's a problem because windows use the NTFS file system and ubuntu uses the ext4 file system.
+
+A solution can be divide the Storage space in the SSD. We reserve 1 TB for windows and 1 TB for ubuntu. Dividing a storage device in this way is called,
+partitioning.
+
+So to see which Partitions exist on a linux system we can use the lsblk command
+
+$ lsblk
+NAME                        MAJ:MIN     RM          SIZE        RO      TYPE            MOUNTPOINTS
+sda                           8:0       0           45G         0       disk
+|-- sda1                      8:1       0            1M         0       part
+|-- sda2                      8:2       0            2G         0       part            /boot
+|-- sda3                      8:3       0           43G         0       part
+    |-- ubunut-vg-ubuntu-lv 252:0       0         21.5G         0       lvm             /
+sr0                          11:0       1         1024M         0       rom
+
+
+What we see is called block devices. There are some sort of blocks of storage space, places where Linux can store data or retrieve data.
+Not everything are Partitions only the one where part in the type.
+
+In this case sda is the virtual disk and contains 3 Partitions, sda1, sda2, sda3.
+
+lvm means is something manged by the logical volume manager.
+
+In a virtual machine, virtual storage device might begin with the letter B. On a real computer we might see names like sda1, sda2, etc... The S comes from
+the world serial.
+
+If an SSD is connected to a SATA port, which is serial ATA on the motherboard and with NVM storage devices, we'll see names bginning with NVMe
+
+So we can have something like this:
+
+sda
+    sda1
+    sda2
+sdb
+    sdb1
+    sdb2
+    sdb3
+sdc
+    sdc1
+
+In this case it's easy we have 3 storage device sd(a,b,c) and then we have Partitions on each one sda1, sdb2, etc... So in this case we see that sdb2 for example.
+sd-b (means that there is the second storage device)- 2 (means there is the second Partition)
+
+$ lsblk
+NAME                        MAJ:MIN     RM          SIZE        RO      TYPE            MOUNTPOINTS
+sda                           8:0       0           45G         0       disk
+|-- sda1                      8:1       0            1M         0       part
+|-- sda2                      8:2       0            2G         0       part            /boot
+|-- sda3                      8:3       0           43G         0       part
+    |-- ubunut-vg-ubuntu-lv 252:0       0         21.5G         0       lvm             /
+sr0                          11:0       1         1024M         0       rom
+
+Let's go back to this setup. All of these block devices are actually referenced by files found in /dev directory
+
+$ ls /dev/sda1
+
+And this will point to the first partition of our first storage device, this basically gives us direct access to the partition.
+In the same way:
+
+$ ls /dev/sda
+
+Doesn't point to the partition, points to the entire device and we can use this in a command.
+
+$ sudo fdisk --list /dev/sda
+Disk /dev/sda: 45 GiB,
+Disk model: VBOX HARDDISK
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: gpt
+Disk identifier:....
+
+Device          Start       End          Sectors         Size        Type
+/dev/sda1        2048      4095             2048           1M         BIOS boot
+/dev/sda2        4096   4198399          4194304           2G         Linux filesystem
+/dev/sda3     4198400  94368781         90171392          43G         Linux filesystem
+
+
+With the command above we basically say, show me a list of partitions on this block device /dev/sda
+Now let's look better at the output:
+
+A storage device is divided into sectors. When we see a sector size of 512 bytes and the first partition starts at sector 2048. This means it starts
+after 512*2048 = 1048556 bytes or 1MB. This means the partition has 1MB of free space BEFORE it.
+In other words sector from 0 to 2047 are not partitioned. It's just a best practice to leave 1MB free of unpartitioned space at the beginning, this is done in
+case a special program called a bootloader needs to be installed in that area.
+
+Now let's take a look at an utility which is a little bit easier to use: cfdisk
+
+$ sudo cfdisk /dev/sdb
+
+Data on a disk is just a bunch of contiguos zeros and ones, so there needs to be a way for the operating system to know where a partition begins and where
+it ends.
+This is one of the jobs of the partition table. This table was stored at the beginning of the disk in what was called the MBR or Master Boot record.
+Nowadays, many systems have migrated to GPT which is a Guid partition table, because it has a lot of advantages. Before we create any partition we need to decide
+if we'll use MBR or GPT. Most often gpt should be used. Only if we're working with very old hardware we prefer to use mbr.
+
+cfdisk ask us for that:
+Select label type
+gpt
+dos
+sgi
+sun
+
+If we need to use mbr select dos.
+
+In the following exercise we'll imagine that we want 2 partitions on a 10GB drive. The first partition with 8GB for a new operating system and a partition of
+2GB for swap.
+
+After selecting gpt we will see the following screen:
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+>>      Free space      2048           20971486            20969439               10G
+
+    [ New ]         [ Quit ] ...
+
+We can press the New button at the bottom.
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+>>      Free space      2048           20971486            20969439               10G
+
+    Partition size: 8G
+
+Press enter
+We select down to select the Free space again
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+        /dev/sdb1       2038           16779263            16777216               8G        Linux filesystem
+>>      Free space  16779264           20971486             4192223               2G
+
+    [ New ]         [ Quit ] ...
+
+Click on new again
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+        /dev/sdb1       2038           16779263            16777216               8G        Linux filesystem
+>>      Free space  16779264           20971486             4192223               2G
+
+    Partition size: 2G
+
+Press Enter again
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+        /dev/sdb1       2038           16779263            16777216               8G        Linux filesystem
+        /dev/sdb2   16779264           20971486             4192223               2G        Linux filesystem
+
+Now we change our mind, we want 3 partitions
+
+Select the first partition with arrows
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+>>      /dev/sdb1       2038           16779263            16777216               8G        Linux filesystem
+        /dev/sdb2   16779264           20971486             4192223               2G        Linux filesystem
+
+    [ Resize ]         [ Quit ] ...
+
+Then we press Resize button
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+>>      /dev/sdb1       2038           16779263            16777216               8G        Linux filesystem
+        /dev/sdb2   16779264           20971486             4192223               2G        Linux filesystem
+
+    New size: 4G
+
+Press Enter
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+>>      /dev/sdb1       2038            8390655             8388608               4G        Linux filesystem
+        Free space   8390655           16779263             8388608               4G
+        /dev/sdb2   16779264           20971486             4192223               2G        Linux filesystem
+
+Then create a new partition of 4G
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+>>      /dev/sdb1       2038            8390655             8388608               4G        Linux filesystem
+        /dev/sdb2   16779264           20971486             4192223               2G        Linux filesystem
+        /dev/sdb3    8390655           16779263             8388608               4G        Linux filesystem
+
+     [ Sort ]         [ Quit ] ...
+
+As you can see the partition are sorted based on the creation date, not in the position on disk (look at the sectors to undestand that)  in this case we want to sort them. So we can press the
+sort button and evertything is settled accordingly to the position on the disk.
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+        /dev/sdb1       2038            8390655             8388608               4G        Linux filesystem
+        /dev/sdb2    8390655           16779263             8388608               4G        Linux filesystem
+>>      /dev/sdb3   16779264           20971486             4192223               2G        Linux filesystem
+
+        [ Type ]         [ Quit ] ...
+
+Now we want to use /dev/sdb3 to be used a SWAP partition. So we can select the third partition and press the Type button and select what we want.
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+        /dev/sdb1       2038            8390655             8388608               4G        Linux filesystem
+        /dev/sdb2    8390655           16779263             8388608               4G        Linux filesystem
+>>      /dev/sdb3   16779264           20971486             4192223               2G        Linux swap
+
+The type Linux filesystem is a good type we can store operating system, files etx. The only exception are swap or when we need to create a boot partition. For the boot partition we select
+EFI system as our file type.
+
+cfdisk utility does not change anything, until we press the Write button. So we avoid accidentaly mistakes. If we see we select the wrong partition, we just press the Quit button and nothing will
+change.
+
+Disk: /dev/sdb
+Size: 10 GiB, 10737418240 bytes, 20971520 sectors
+Label: gpt, identifier: ikfweueviow;vew
+
+        Device          Start               End             Sectors             Size        Type
+        /dev/sdb1       2038            8390655             8388608               4G        Linux filesystem
+        /dev/sdb2    8390655           16779263             8388608               4G        Linux filesystem
+>>      /dev/sdb3   16779264           20971486             4192223               2G        Linux filesystem
+
+        [ Write ]         [ Quit ] ...
+
+When we press Write the partition table will be altered, and we see the message. Then we can press the Quit button and exit the application.
+With lsblk we can see that our partition structure was created.
