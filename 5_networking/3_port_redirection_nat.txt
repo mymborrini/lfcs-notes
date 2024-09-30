@@ -1,0 +1,219 @@
+
+Port Redirection and NAT
+
+Imagine we have the following situation
+                                                                    Internal Network
+Internet -----> Publicly Accessible Server --------------> |            Server 1            |
+                                                           |                                |
+                                                           |            Server 2            |
+                                                           |                                |
+                                                           |            Server 3            |
+
+
+If the Publicly Accessible Server receive a request on port 80 it doesn't know to which server forward the request.
+In this case it's easy
+
+port 80 -> server 1
+port 993 -> server 2
+port 3306 -> server 3
+
+
+In Network the data are included in what so called a Network Packet which includes the Source IP Address and the Destination IP Address
+
+-------------------------- Network Packet -------------------------------------
+
+   Source IP Address                Data                Destination IP Address
+
+-------------------------------------------------------------------------------
+
+
+So we know each packet and we know how to return the response, since we have the source IP Address as well.
+
+
+
+                                                                    Internal Network
+Internet -----> Publicly Accessible Server --------------> |            Server 1 (10.0.0.5) |
+S: 203.0.113.1 ----> 80                                    |                                |
+D: 1.2.3.4                                                 |            Server 2            |
+                                                           |                                |
+                                                           |            Server 3            |
+
+
+So what the Publicly Accessible Server does is simply to change the Destination Address from 1.2.3.4 to 10.0.0.5
+
+Publicly Accessible Server
+S: 203.0.113.1 ___________________________________ Server 1
+D: 10.0.0.5
+
+The problem now is that when server 1 tries to responds it will fail because the source 203.0.113.1 is not in his Network.
+
+So what the Publicly Accessible Server must do is to rewrite both the source and the Destination
+
+Publicly Accessible Server
+S: 1.2.3.4  ___________________________________ Server 1
+D: 10.0.0.5
+
+In this way everything works. This techinique is also called Masquerading. Through NAT our Publicly server will remeber who sent what and how to return it back.
+
+Is the same of what a router does when he sent back the packages to our laptop or our smartphone in our internal Network.
+
+So HOW we can configure this on linux.
+
+1 Enable IP forwarding
+ We can accomplish this by editing any of these two files:
+
+ /etc/sysctl.conf
+ /etc/sysctl.d/99-sysctl.conf
+
+ If possible choose the second option. Updating the OS can results in changing the first file and we will loose our changes.
+
+ $ sudo vim /etc/sysctl.d/99-sysctl.conf
+ ...
+ # Uncomment this for ipv4 Redirection
+ net.ipv4.ip_forward=1
+
+ #net.ipv6.conf.all.forwarding=1
+ ...
+
+ Once we make all the necessary changes we save it and relaunch the command
+
+ $ sudo sysctl-system
+
+ To check if our changes has take effect
+
+ $ sudo sysctl -a | grep forward
+ ...
+ net.ipv4.ip_forward=1
+ net.ipv6.conf.all.forwarding=1
+
+Now we have to configure port redirection. So firstable all data is managed by Linux Kernel, so every firewall rule, every NAT or port redirection is handled
+by the Linux Kernel as well, or at least by a part of it, called the Netfilter Framework.
+
+To interact with the Netfilter Framework is the nft command. nft commands are quite hard to remember so it's easy for us to use iptables command.
+
+
+
+
+
+Let's image the following scenario
+                                                                                            Internal Network
+10.0.0.0/24 -----> Publicly Accessible Server -------------->              ---------- | ------> 80 Server 1            |
+                  |                         |                              |          |                                |
+                  |         8080  --------- | -----------------------------           |            Server 2            |
+                  |                         |                                         |                                |
+                  |                         |                                         |            Server 3            |
+
+We want to redirect every request coming in from the 10.0.0.0/24 CIDR range. every request from this CIDR on port 8080 should be redirect to port 80
+of Server 1 (192.168.0.0/24)
+
+
+Before we set this up we'll have to decide what network interface will be responsible for this redirection.
+
+Let's first image two device cards, on responsible for the incoming traffic at 10.0.0.1 and another one for the outcoming traffic at 192.168.0.1
+
+
+                                                                                            Internal Network
+10.0.0.0/24 -----> Publicly Accessible Server -------------->              ---------- | ------> 80 Server 1   192.168.0.5         |
+        |         |                         |                              |          |                                |
+        |--   10.0.0.1      8080       192.168.0.1   -----------------------          |            Server 2            |
+                  |                         |                                         |                                |
+                  |                         |                                         |            Server 3            |
+
+
+We can inspect our network addresses with an ip a command and we might see something like this:
+
+$ ip a
+
+2: enp6s0
+...
+    inet 192.168.0.1/24
+3: enp1s0
+....
+    inet 10.0.0.1/24
+
+Now this tells us the enp6 deals with the outgoing traffic and enp1s0 deals with the incoming traffic. But now image we have to redirect to 1.2.3.4
+What will happened?
+In this case we can check at the ip routes default via
+
+$ ip r
+...
+default via 10.11.12.1 dev enp1s0 proto dhcp src 10.11.12.14 metric 100
+...
+
+
+So we can see that by default the device used is enp1s0. So we can conclude that enp1s0 will be used to send data to 1.2.3.4 when configuring our port redirection.
+
+
+Now that we know every we need we can configure iptables. iptables uses structures known as tables and chains
+
+
+
+                    |      |    Pre routing chain                           |            |                  |        |
+Network Interface   | ---> |   raw -> connection tracking -> mangle -> nat  | ---------> | mangle -> filter |   ---> |  Local Process
+                    |      |                                                |            |                  |        |
+                    |                                                   |                                            |
+                    |                                      ----------------------                                    |
+                    |                                   --   filter <- mangle                                        |
+                    |                                  |   ----------------------                                    |
+                    |      | Post Routing chain  |  <--    |                                                       | |
+                    | <--- |    nat <-  mangle   |  <----- | filter <- nat <- mangle <- connection tracking <- raw | |
+
+
+Now you can think of a chain in terms of when the network packet is processed, and you can think og a tables as a way to group rules for a certain
+purpouse. A table can reference multiple chain, but those chains will only be triggered during a certain time of the network packets journey.
+
+So now take a look at the command itself.
+
+$ sudo iptables -t nat -A PREROUTING -i enp1s0 -s 10.0.0.0/24 -p tcp -dport 8080 -j DNAT --to-destination 192.168.0.5:80
+
+-t nat        =>           we add this rule to the nat table. When a port is redirected NAT is used to change the initial destination IP and port to a different IP. So whenever
+                         we neet nat, we need to add our rule to the nat table
+-A PREROUTING =>           -A stands of append, so we Append another rule to the pre-routing chain, which deals with the altering network packets as soon as
+                         they are received, because the IP addresses will be modified. So this modification was to happen before the routing stage, otherwise the
+                         packet would be routed to the wrong place based on the old IP address instead of the new one.
+-i enp1s0     =>         We select enp1s0 as the input interface, this way we only apply this rule when the packet is received on a specific interface
+-s 10.0.0.0/24 =>        The source ip, we apply this rule only fi the source IP is in the CIDR range.
+-p tcp          =>      Is mandatory to use the -p option. Without using it we get an error saying something like dport has an unknown option. You can copy paste the command another time
+                        if you need for udp.
+-dport 8080    => We set the destination port to 8080
+-j DNAT         =>      This is where the magic happend, -j tells our rule to jump this network packet to a so called target In iptables terminology. You can think of it as sending this network
+                        packet to a mini program or a mini module of sorts. In this case it's sent to an extension called Nat, short for destination Nat.
+                        This is the target extension that alters the packet to be redirected to a new IP in port
+--to-destination =>     Is an option for the DNAT module, and it HAS TO be added AFTER the -j specificatioon.
+
+
+N.B. In any case the pre-routing chain is applied to packed received from the outside world, you cannot specify the loopback interface with it.
+
+Now if we connect from an external machine for example 10.0.0.9 the connection is initiated but then it hangs.
+Which makes sense because even though network packets are
+forwarded, they have no way of coming back. Because server1 is not able to reach 10.0.0.0/24 network. So we have to tell the server that it has to change
+the source of the packages with its own ip address like 102.168.0.1
+
+$ sudo iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o enp6s0 -j MASQUERADE
+
+-j MASQUERADE => will automatically replace the source IP with it's own IP.
+
+Now we can use nft to see the ruleset
+
+$ sudo nft ruleset
+
+And this will show what we configured.
+
+This changes will be lost if we reboot. To make them permanent we can install this package.
+
+$ sudo apt install iptables-persistent
+
+Now everytime we make some changes we can save them with this command:
+
+sudo netfilter-persistent save
+
+In the end if we have the firewall enabled, we can add the following rule:
+
+$ sudo ufw route allow from 10.0.0.0/24 to 192.168.0.5
+
+
+N.B.
+If you make any mistake you can empty this table with pseudo IP tables
+
+$ sudo iptables --flush --table nat
+

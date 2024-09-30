@@ -1,0 +1,202 @@
+Monitor Storage Performance
+
+Just like CPU and RAM Storage Devices have their limits.
+
+If a process if overusing the CPU, keeping it at 100%, the system will slow down considerably. The same can happen if a storage device is
+overused.
+
+Now we have utilities like top or htop to look how processes are using the CPU or our RAM.
+
+For storage device one of the simplest tool is sysstat
+
+$ sudo apt install sysstat
+
+sysstat package contains a lot of utilities. What we are interesting right now is the iostat and the pidstat.
+
+iostat name comes from IO statistics, io is short for input and output because we can input data to a storage device when we're writing to it,
+and the storage device outputs data when we read from it.
+
+pidstat is short for process ID statistics, this tools will show statistics for each process on the system includes with the PID number
+
+$ iostat
+
+avg-cpu:    %user       %nice       %system     %iowait         %steal          %idle
+            0.47        0.00        1.09        4.17            0.03            94.24
+
+Device      tps         KB_read/s       KB_wrtn/s       KB_dscd/s       KB_read         KB_wrtn         KB_dscd
+...
+vda         155.28      535.50          600.66          0.00            265686          298016          0
+
+First of all, this displays historical usage of our storage devices. It's not showing us how this devices are used right now.
+
+The fourth field, tps, KB_read/s, KB_wrtn/s, KB_dscd./s, show an avarage of usage divided by the total time since the system was started
+
+For example the system was booted 3 seconds ago.
+
+In the 1st second, somehting read from the disk at 100kB per second
+In the 2nd second, somehting read from the disk at 200kB per second
+In the 3rd second, no reading (0 kB/s)
+
+So ( 100 + 200 + 0 ) / 3 = 100 kB/s
+
+So iostat might show us 100 in the kB read field
+
+Generally when we're looking at what's using the storage devices, we're interested in the first three fields:
+
+tps stands for transfers per second. We can think of it in terms of how many times does the system tell this device to read or write something.
+KB_read/s refers to the kilobytes read per second
+KB_wrtn/s shows kilobytes written per second
+
+KB_read and KB_wrtn simply show the total number of kilobytes read or written since the system booted.
+
+Something to note here is that what iostat shows us does not always reflect the exact amount of data per second, written or read by a process.
+
+For example, a process can request to write 1kB every second, but iostat might not show the device is used at 1000kB/s during that time.
+That's because iostat tries to figure out these numbers by looking at what the device is reporting not the process, and the device might work with larger
+blocks of data.
+
+Even if a process sends just 1kB, the device might report it updated a much larger block. So iostat can be tricky with small transfer but is good for
+larger transfer.
+
+A storage device can be stressed in two different ways:
+
+ - Something read or writes to it very often
+ - Something read or write to it at very high speed. Large volumes of data are transfered
+
+If somehting uses the devices often, we'll see a high tps number
+For large columes of data we'll see large numbers under KB_read/s and KB_wrtn/s
+
+Remember especially the first reason of stress, because each device can process a certain maximum amount of requests per second.
+If one process does a high number of transfers per second, there's not much left for other processes to use.
+
+The same goes for large transfer. If the device can only wirte 2G per second, and a process is already writing at 1.98G, there's very little
+left for other processes, which can lead to a very slow unresponsive system
+
+Let's test it
+
+First, we'll open up a process that will write constantly to a storage device, and we can use the following command for this porpouse:
+
+$ dd if=/dev/zero of=DELETEME bs=1 count=1000000 oflag=dsync &
+
+bs=1 tells our dd command to write data one bite a time
+count=1000000 write that one bite a million times.
+oflag=dsync makes dd avoid using cache with write caching. With caching this write operation could finish really soon, but with this argument
+    the write operation can go on for a long time.
+
+This combination makes dd write for a long time so we can test our scenario
+
+
+Now let's imagine we don't know what is writing to the storage device and we want to find out.
+
+$ iostat 1
+Device      tps         KB_read/s       KB_wrtn/s       KB_dscd/s       KB_read         KB_wrtn         KB_dscd
+dm-0        663.37      0.00            2122.77
+sda         34.15       155.71          132.11          0.00
+
+Device      tps         KB_read/s       KB_wrtn/s       KB_dscd/s       KB_read         KB_wrtn         KB_dscd
+dm-0        711.00       0.0            2272.00          0.00
+sda         584.31       0.0            2499.01          0.00
+
+With the '1' option iostat will print the output every second.
+
+It's important to know that with this option iostat doesn't show use the avarage usage since the system booted up, instead it shows us the
+average write speed for the last one second
+
+This output help us identify our first clue:
+
+We can see that dm-0 and sda are being written too, we'll find out later how to indentify what DMs zero belongs to.
+Actually we see that something writes on sda and dm-0, but we don't know which process is writing.
+
+Here is when pidstat comes into place
+
+$ pidstat -d
+
+PID         kb_rd/s         kb_wr/s             command
+1274        0.97            0.00                bash
+1411        0.04            75.50               dd
+1418        0.03            0.00                pidstat
+
+This output show us our next clue. Now notice this column: kb_wr/s. We can see that the dd command is the one with the largest value in this field.
+
+It's useful to know that pidstat support writing stuff each second:
+
+$ pidstat -d 1
+
+PID         kb_rd/s         kb_wr/s             command
+1411        0.00            592.16              dd
+
+PID         kb_rd/s         kb_wr/s             command
+1411        0.00            546.53              dd
+
+...
+
+When you use pidstat with no command line options it outpusts avarage read write transfers per second and it's historical average values.
+If you want live results then use a command like pidstat -d 1 to constantly refresh data every one second.
+
+So at this point we have two clue:
+
+ dm-o and /dev/sda are being written to.
+ The PID is the 1411.
+
+Now what is the dm-0 device? dm stands for device mapper.
+
+This was actaully created by the logical volume manager and we can find out what this maps to with the DM setup command
+
+$ sudo dmsetup info /dev/dm-0
+
+Name:           ubuntu--vg0ubunut--lv
+State:          ACTIVE
+Read Ahead:     256
+Tables present: LIVE
+Open count:     1
+Event number:   0
+Major, minor:   252, 0
+Number of targets: 1
+UUID: LVM-ascsasas2345678908
+
+If we type lsblk we see something like this
+
+$ lsblk
+NAME                        MAJ:MIN     RM          SIZE        RO      TYPE            MOUNTPOINTS
+sda                           8:0       0           45G         0       disk
+|-- sda1                      8:1       0            1M         0       part
+|-- sda2                      8:2       0            2G         0       part            /boot
+|-- sda3                      8:3       0           43G         0       part
+    |-- ubunut-vg-ubuntu-lv 252:0       0         21.5G         0       lvm             /
+
+We see that unde sda3 there is this ubunut-vg-ubuntu-lv.
+ubunut-vg-ubuntu-lv is an lv, a logical volume created when we installed our operating system. It's a logiical volume created on the
+/dev/sda
+
+Now we know why both dm-0 and sda showed up as being actively used in our iostat command. At the end of the day sda is the real device beingh used,
+since dm-0 is just an abstraction that uses sda under the hood.
+
+dd is a process writing on /dev/sda. In a real scenario we could see other things, for example that the process writing intensively is a database
+program like MariaDB, and you could follow up looking at its logs to see what's going on.
+
+A useful command could be
+
+$ iostat -h
+
+Which print in a more human readable format bytes, kilobytes, mega and so on
+
+$ pidstat -d --human
+
+Does the same.
+
+If you check pidstat -h is assigned to a different behaviour
+
+iostat shows for the entire device, but not for each partition of them. If we want to check each partition
+
+$ iostat -p ALL
+
+or
+
+$ iostat -p sda
+
+So you can see all the partition under sda
+
+For everything remember that checking the manual is always a good option
+
+$ man pidstat
+$ man iostat

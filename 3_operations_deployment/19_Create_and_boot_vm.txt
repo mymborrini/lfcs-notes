@@ -1,0 +1,115 @@
+Create and Boot a VM
+
+When we download an image, for example: ubuntu-24.04.img
+
+We can use qemu to check the image info
+
+
+$ qemu-img info ubuntu-24.04.img
+...
+virtual size: 3.5 GiB
+...
+
+In order to change the size (since we want to install something on our operative system)
+
+$ qemu-img resize ubuntu-24.04.img 10G
+
+Now our virtualization tools will need to access what's called a storage pool. In this pool it will store disk images, snapshots, and other data.
+The default location: /var/lib/libvirt/
+
+$ ls /var/lib/libvirt/
+* boot dnsmasq images qemu sanlock
+
+So we can simply copy the image in the right folder:
+$ sudo cp ubuntu-24.04.img /var/lib/libvirt/images/
+
+$ virt-install --osinfo list
+...
+ubunut24.04, ubuntunoble
+...
+
+
+$ virt-install \
+ --import \
+
+
+To understand each command press
+$ man virt-install
+
+and then press ? <the command, import for example> and then press enter until the command is found.
+
+For example import tells our utility to skip the OS installation process, that's because normally virt-install will try to install an operating system on top of a disk image
+That's because our disk image already has the ubuntu operating system pre-installed
+
+
+Of course another way to see the most common used options is to
+
+$ virt-install --help
+
+So in the end
+
+$ virt-install --osinfo ubunut24.04 --name ubuntu1 --memory 1024 --vcpus 1 --import --disk /var/lib/libvirt/ubunut24.04.img --graphics none
+...
+Escaper character is ^] (Ctrl + ])
+...
+
+In the end it will ask us to login, since we didn't set a username or a passowrd we can exit from the vm console.
+
+We can press (Ctrl + ]) (in this case), and exist the console. So the creation and the booting of the vm works fine.
+
+
+We cannot login since we don't know the root Password
+
+$ virsh list --all
+*   Id      name        State
+* ---------------------------
+*   1       ubuntu1     running
+
+Now shut it down
+
+$ virsh shutdown ubuntu1
+
+We can use the old command but we can add some options at the end
+
+$ virt-install --osinfo ubunut24.04 --name ubuntu1 --memory 1024 --vcpus 1 --import --disk /var/lib/libvirt/ubunut24.04.img --graphics none --cloud-init \
+    root-password-generate=on
+
+The random root password will be displayed for 10 seconds. So we should be ready to copy it. Then the installation is starting and
+
+ubunutu login: root
+Password: <the passowrd you copied before>
+
+After a couple of more steps you can login in
+
+$ root@ubuntu
+
+Inside the vm you can check how the vm is separated
+
+$ df -h
+Filesystem      size    used    Avail       use     Mounted on
+/dev/root/      8.7G    466M    8.2G        6%      /
+tmpfs           481M       0    481M        0%      /dev/shm
+...
+
+If we try a simple
+
+$ apt update
+....
+...
+
+We don't have a particular problem, that's beacusa virsh provides us a lot of based configuration, network connectivity included
+
+WIth
+$ logout
+
+$ ctrl + ]
+
+We will detach from the vm:
+
+To attach to the vm console again:
+
+$ virsh console ubuntu1
+
+
+
+

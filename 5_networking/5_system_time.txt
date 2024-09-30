@@ -1,0 +1,58 @@
+Set and Synchronize System Time using Time Servers
+
+Hardware clocks and computers are not perfect. They slowly drift away from the real time.
+
+So they periodically get the exact time from the internet, and they get it from what are called time servers, more specifically NTP (Network time protocol)
+servers.
+
+In ubuntu there is a systemd utility named:
+
+systemd-timesyncd
+
+Firstable we want to set a server to a specific time-zone:
+
+To see all specific timezones:
+$ timedatectl list-timezones
+
+TO set a timezones
+
+$ sudo timedatectl set-timezone <Timezone>
+
+To check our current timezone
+
+$ timedatectl
+Local time:
+Universal time:
+RTC time:
+Time zone:
+System clock synchronized:
+NTP service
+RTC in local TZ
+
+If the NTP service is not set to active:
+
+1 Install the utility
+$ sudo apt install systemd-timesyncd
+
+2 Set ntp to true
+$ sudo timedatectl set-ntp true
+
+We can check the status of timesync
+
+$ systemctl status systemd-timesyncd.service
+
+Here we can customize a lot of stuff, maybe the ntp server/s we want to connect.
+$ sudo vim /etc/systemd/timesyncd.conf
+
+Then:
+$ sudo systemctl restart systemd-timesyncd
+
+To see if our changes has been applied accordingly we can see all the different options we have:
+
+$ timedatectl <tab> <tab>
+
+For example:
+$ timedatectl show-timesync
+
+Or:
+$ timedatectl timesync-status

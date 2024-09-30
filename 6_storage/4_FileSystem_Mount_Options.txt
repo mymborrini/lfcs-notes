@@ -1,0 +1,105 @@
+File System Mount options
+
+Now let's look at how to adjust file system and mount options.
+
+We saw how lsblk command gives us a nice overview of what is mounted, but we also want to know
+
+ .  What filesystem is mounted here?
+ .  What are the mount options?
+
+findmnt is a useful command that show use really useful information about what is mounted and the options
+
+ $ findmnt
+ TARGET             SOURCE          FSTYPE          OPTIONS
+ /                  /dev/map..      ext4            rw,relatime,seclabel
+ |-/proc            proc            proc            rw,nosuid,nodev,noexec,relatime
+ |  |-./proc/       ....
+ |
+ |-/dev
+ |  |-/dev/ports    devpts          ....
+ |
+ |
+ |-/boot            /dev/sda2       ext4
+ |-/mybackups       /dev/sdb1       xfs             rw,relatime,seclabel,attr2,inode64
+
+
+ Now it can look very messy and hard to read, especially if we don't need all this information. For example proc is a virtual file system mounted in the
+ proc directory.
+
+ We can tell findmnt to filter our results. Proc is a virtual filesystem, which exists only in the RAM of our computer. We can tell findmnt to show us
+ only real filesystems
+
+$ findmnt -t xfs,ext4
+ TARGET             SOURCE          FSTYPE          OPTIONS
+ /                  /dev/map..      ext4            rw,relatime,seclabel
+ |-/boot            /dev/sda2       ext4
+ |-/mybackups       /dev/sdb1       xfs             rw,relatime,seclabel,attr2,inode64
+
+ findmnt only show us filesystems that are currently mounted. Those that exist on some partition somewhere but are not yet mounted won't show up in this
+ output.
+
+What are the options that findmnt shows us?
+
+rw => Means that we can read and write on this filesystem. If we use an option called ro, we create a filesystem which is readonly
+
+For example:
+
+$ sudo mount -o ro /dev/sdb2 /mnt
+
+$ findmnt -t xfs,ext4
+ TARGET             SOURCE          FSTYPE          OPTIONS
+ /                  /dev/map..      ext4            rw,relatime,seclabel
+ |-/boot            /dev/sda2       ext4
+ |-/mybackups       /dev/sdb1       xfs             rw,relatime,seclabel,attr2,inode64
+ |-/mnt             /dev/sdb2       ext4            ro,relatime,seclabel
+
+
+If we now want to create a file in the mounted directory
+
+$ sudo touch /mnt/testfile
+touch: cannot touch '/mnt/testfile': Read-only file system
+
+$ sudo mount -o ro,noexec,nosuid /dev/sdb2 /mnt
+
+noexec => makes impossible to launch a program that's stored on this file system.
+nosuid => Disabled suid permission that can allow programs to run with root privileges without needing.
+
+Now if we want to remount instead of unmount and mount again we can add a remount option
+
+$ sudo mount -o remount,ro,noexec,nosuid /dev/sdb2 /mnt
+
+
+The options we used up until now are called filesystem indipendent because they can be used on almost any file system
+
+To see this kind of options is enough to type:
+
+$ man mount
+
+But if we want to see mount options for a specific filesystem we need to consult the manual of that filesystem
+
+$ man xfs
+
+In case of filesystem dependent options it's a bad practice to use remount option. Instead unmount and mount the file system again is the best choice
+
+For example for the allocsize option
+
+$ sudo unmount /dev/sdb1
+
+$ sudo mount -o allocsize=32K /dev/sdb1 /mybackups
+
+
+We apply these options manually, but we can also apply them automatically.
+
+$ sudo vim /etc/fstab
+
+/dev/sda2       /boot       ext4        defaults        0       1
+/dev/sdb1       /mybackups  xfs         defaults        0       2
+
+We replace the second line with our options instead of the default ones
+
+/dev/sdb1       /mybackups  xfs         ro,noexec        0       2
+
+And now we simply reboot and our options will be taken into consideration
+
+$ sudo systemctl reboot
+

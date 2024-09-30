@@ -1,0 +1,209 @@
+Manage and configure LVM storage
+
+LVM stands for logical volume manager.
+
+Imagine we have this setup
+
+
+Disk:
+
+| Beginning Partition   |    Middle Partition   |   Free Space
+
+
+
+
+If we want to make Middle Partition bigger we can easly do so. We just resize it using the Free space of the Disk so we use the space on the right
+
+What if we want to grow Beginning Partition? This is more complicated because there is no Free Space at the left or at the right
+
+With LVM is easy to solve. Instead of directly partitioning the disk we first add it into lvm.
+
+So the setup is the same but in a LVM manage disk
+
+
+LVM:
+
+| Beginning Partition   |    Middle Partition   |   Free Space
+
+If we want to grow the beginning partition, the logical volume manager searches for some free space. It sees that there's some space at the end of
+the disk, so it just makes the first partition use the first part of the disk, same as it did before, but it also attaches the free space at the end of
+the disk to the same first partition.
+
+THis is not how the disk is really used, this this is how LVM presents it to the system. basically the first partition is made out of
+two different areas on the disk now, but to the operating system, lvm will presents it as a regular continuos partition
+
+This way Linux can use it normally without any problems, and we as administrator can resize our partition. This is just the core concept of LVM,
+this tool can do much more.
+
+Now, image we'll need to add three virtual disks to our virtual machine to have something to work with.
+We can install the lvm tool
+
+$ sudo apt install lvm2
+
+Related to lvm we'll often see four terms
+
+- PV (physical volume)
+- VG (volume group)
+- LV (logical volume)
+- PE (physical extent)
+
+Most lvm command start with one of these two letters
+
+PV represents the real storage devices that lvm will work with. PV generally consist of an entire disk or SSD. Sometimes a PV can also be a partition
+
+
+We can use the following command that gives us a nice view of what disks and partitions are available and also what is already used in our lvm
+structure
+
+$ sudo lvmdiskscan
+/dev/sda2
+/dev/sda3       LVM physical volume
+/dev/sdb1
+/dev/sdb2
+/dev/sdb3
+/dev/sdc
+/dev/sdd
+/dev/sde
+3 disks
+4 partitions
+0 LVM physical volume whole disks
+1 LVM physical volume
+
+For example we can see that /dev/sdb3 is already used as an LVM physical volume. That was created automatically when we installed ubuntu.
+
+Let's add two of our new disks as physical volumes to LVM
+
+$ sudo pvcreate /dev/sdc /dev/sdd
+ Physical volume "/dev/sdc" successfully created.
+ Physical volume "/dev/sdd" successfully created.
+
+This command pvs show the whole size of the pvs
+$ sudo pvs
+PV              VG              Fmt         attr            PSize           PFree
+/dev/sda3       ubuntu-vg       lvm2        a--             <43.00g         21.50g
+/dev/sdc                        lvm2        ---             5.00g            5.00g
+/dev/sdd                        lvm2        ---             5.00g            5.00g
+
+
+Now lvm has the physical devices where it can store data (the pvs)
+
+Next we need to tell it how to use the storage capacity. To do so we add a PV to a VG, a volume group
+
+
+$ vgcreate [NAME_OF_GROUP] [NAME_OF_PVS_TO_USE]
+
+So
+
+$ sudo vgcreate my_volume /dev/sdc /dev/sdd
+    Volume group "my_volume" successfully created
+
+
+These are two separate 5G disks, but once we add them to a volume group, they will be seen as a single continuos 10G disk.
+We can keep growing our VG indefinitely, just by adding more disks to the server and then adding them to this VG.
+
+This is really useful, with a VG we can expand our storage without ever needing to power off the server.
+
+To expand our VG, first we need to add a new physical volume to LVM
+
+$ sudo pvcreate /dev/sde
+
+And then we expand our volume group
+
+$ sudo vgextend my_volume /dev/sde
+
+$ sudo vgs
+VG          #PV  #LV    #SN     Attr    VSize       VFree
+my_volume    3    0      0      wz--n-  <14.99g     <14.99g
+ubunut-vg    1    1      0      wz--n-  <43.00g      21.50g
+
+
+The output tells us that it uses 3 PVS and it has 14.99g in total size and 14.99 still free, because there are 0 LV logical volumes on it.
+
+
+We can of course remove a physical volume for a volume group
+
+$ sudo vgreduce my_volume /dev/sde
+
+If we don't use this pv anymore we can remove it
+
+$ sudo pvremove /dev/sde
+
+This disk or VG (my_volume) is still not partitioned yet, so we need to add an LV. A logical volume is similar to a partition in lvm
+
+$ sudo lvcreate --size 2G --name partition1 my_volume
+Logical volume "partition1" created
+
+We've created 2G LV with a simple name partition1
+
+$ sudo vgs
+VG          #PV  #LV    #SN     Attr    VSize       VFree
+my_volume    2    1      0      wz--n-    9.99g       7.99g
+ubunut-vg    1    1      0      wz--n-  <43.00g      21.50g
+
+
+Now let's create a second volume group and we're going to name this partition2 with a size of 6G
+
+$ sudo lvcreate --size 6G --name partition2 my_volume
+
+$ sudo lvs
+LV              VG          Attr        LSize           ....
+partition1      my_volume   -wi-a----    2.00g
+partition2      my_volume   -wi-a----    6.00g
+ubuntu-lv       ubuntu-vg   -wi-ao---   <21.50g
+
+Now remember the problem we had before. We couldn't grow partition1 because it had no free space on its right. We have to lv and we want to
+make the first on bigger to use all the available space (we still have 2g)
+
+$ sudo vgs
+VG          #PV  #LV    #SN     Attr    VSize       VFree
+my_volume    2    2      0      wz--n-    9.99g       1.99g
+ubunut-vg    1    1      0      wz--n-  <43.00g      21.50g
+
+So to extends the first partition we use this command:
+
+$ sudo lvresize --extends 100%VG my_volume/partition1
+
+Now we can if we want resize our logical volume
+
+$ sudo lvresize --size 2G my_volume/partition1
+
+
+FILE SYSTEM
+
+Now as always to be able to store files and directories on a partition we need to install a file system on it.
+
+The path of an LV is pretty intuitive
+
+/dev/name_of_the_volume_group/name_of_the_logical_volume
+
+We can even have more details:
+
+$ sudo lv display
+
+
+So we create an ext4 file system with a command like this:
+
+$ sudo mkfs.ext4 /dev/my_volume/partition1
+
+Now that we have a fileSystem on it, resize could be a little more difficult
+If we use a command like the following:
+
+$ sudo lvresize --size 3G my_volume/partition1
+
+We resize the partition but the fileSystem will still use only 2GB
+
+So we have to tell lvm to resize both the LV and the fileSystem on it.
+
+$ sudo lvresize --resizefs --size 3G my_volume/partition1
+
+N.B. Some fileSystem can enlarged but they can't be shrink
+
+
+Of course if you ever forget any of these commands:
+
+$ man lvm
+
+Or you want to work with volume group
+
+$ vg <tab> <tab>
+And this will show you all the suggestion you can use

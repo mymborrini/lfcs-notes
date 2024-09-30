@@ -1,0 +1,138 @@
+
+Access Control Lists (ACLs) and Attributes
+
+
+Image we have a situation like this
+
+-rw-rw-r--     alex staff   file1
+-rw-rw-r--     alex staff   file2
+-rw-rw-r--     alex staff   file3
+
+
+We want jeremy who does not belong to stuff group to be able to write only on file3
+
+We will use ACL.
+
+First install it, if they are not already install it.
+
+$ sudo apt install acl
+
+(setfacl stands for set file access control list )
+$ sudo setfacl --modify user:jeremy:rw file3
+
+If we want to add all permissions
+
+$ sudo setfacl --modify user:jeremy:rwx file3
+
+if now we look at the file permissions
+
+-rw-rw-r--     alex staff   file1
+-rw-rw-r--     alex staff   file2
+-rw-rw-r--+     alex staff   file3
+
+
+As you can see to indicate that file3 has some ACL stuff included there is a + sign near the permissions. TO see the ACL for this file we can use
+
+$ getfacl file3
+# file: file3
+# owner: alex
+# group: staff
+user::rw-
+user:jeremy:rw-
+group::rw-
+mask::rw-
+other::r--
+
+The mask defines the maximum permission that this file cor directory can have. Sometimes a mask could be useful if we want to limit exsisting
+permission. For example we want that nobody can write or execute that file
+
+$ sudo setfacl --modify mask:r file3
+
+$ getfacl file3
+# file: file3
+# owner: alex
+# group: staff
+user::rw-
+user:jeremy:rw-         #effective:r--
+group::rw-              #effective:r--
+mask::r--
+other::r--
+
+The effective part shows us that the mask limits the permissions here.
+
+Now let's see groups:
+
+To let anyone in the sudo group read and write to this file, we add this command:
+
+$ sudo setfacl --modify group:sudo:rw
+
+
+To deny all permissions for a specific user, we just specify the username followed by an empty list of permissions bit (3 '-')
+
+
+$ sudo setfacl --modify user:jeremy:--- file3
+
+
+We can remove acl for a user with this command
+
+$ sudo setfacl --remove user:jeremy file3
+
+or for the sudo group
+
+$ sudo setfacl --remove group:sudo file3
+
+To remove all acl entries we can use this command
+
+$ sudo setfacl --remove-all file3
+
+
+To apply a change to all directories and subdirectories (recursively)
+
+$ sudo setfacl --recursive -m user:jeremy:rwx dir1/
+
+The same to remove
+
+$ sudo setfacl --recursive --remove user:jeremy dir1/
+
+
+Now let's create a new file and enable the 'append only' attribute
+
+$ echo "This is old content" >  newfile
+
+$ sudo chattr +a newfile
+
+With this attribute we can only append, so set new data on top of old data. We can just keep adding but we cannot override or change old data.
+
+To remove append only from a file we can just do something like this:
+
+$ sudo chattr -a newfile
+
+
+Now let's talk about the immutable attribute (i)
+
+$ sudo chattr +i newfile
+
+Now nobody can modify or delete this file.
+
+To check the attribute of a file
+
+$ lsattr newfile
+----i---------e------- newfile
+
+As ls it can work for an entire directory
+
+$ lsattr
+----i---------e------- newfile
+--------------e------- file1
+--------------e------- file2
+--------------e------- file3
+
+To remove the attirbute is the same
+
+$ sudo chattr -i newfile
+
+
+Other attributes can be seen in the user manual
+
+$ man chattr
+

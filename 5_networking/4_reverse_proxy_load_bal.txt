@@ -1,0 +1,151 @@
+Implement Reverse Proxy and Load Balancer
+
+Imagine the follow situation:
+
+
+Web Browser  <----------------->  Reverse Proxy  <--------------------------->  Web Server
+
+
+Why do we need a Reverse proxy in the first place?
+
+For example if we develop a new powerful Web Server we can change the reverse proxy configuration to redirect to the new web server. And this happens Without
+the web Browser knowing anything.
+
+Reverse proxy has a lot of other advantages, filtering web traffic, caching pages, firewall etc...
+
+But it has another interesting feature Load Balancing
+
+A load Balancer is similar to a reverse proxy but it redirects to multiple web server not just one. And it can dinamically picked up wich server is best
+to use.
+For example it can redirect a request to the server that's the least busy. This way no server is overloaded and they're all used evenly.
+
+How to create a reverse proxy? An application often used to create reverse proxies is nginx. Although there are alternative solutions such as HAProxy, Apache etc...
+
+So how we create a REVERSE PROXY?
+
+1 Install nginx
+
+$ sudo apt install nginx
+$ sudo vim /etc/nginx/sites-available/proxy.conf
+
+At its core it still works as a web server but instead of generate the web content internally it will fetch from another web server (an external one), which is
+what makes it a reverse proxy.
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://1.1.1.1;
+    }
+}
+
+
+For our web server the user that ask for all this requests is proxy itself. Let's image we want to change this behaviour to collect statistics for example.
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://1.1.1.1;
+        include proxy_params;
+    }
+}
+
+This line simply will add a configuration file /etc/nginx/proxy_params
+
+proxy_set_header Host $http_host;
+proxy_set_header X-Real_IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+
+In proxy_params file as you can see that all this does is set some headers for the requests that will be redirected to the web.
+
+The right practice is simply to soft link the configuration file to the sites-enabled directory so something like this:
+
+$ sudo ln -s /etc/nginx/sites-available/proxy.conf /etc/nginx/sites-enabled/proxy.conf
+
+Also we should disable the default configuration that is currently active.
+
+$ sudo rm /etc/nginx/sites-enabled/default
+
+This file is also a soft link, the real one is in sites-available. By deleting it we don't loose any content.
+
+To check config files for errors with:
+
+sudo nginx -t
+We should see something like this:
+
+nginx: the configuraiton file /etc/nginx/nginx.conf syntax is ok
+nginx: configuraiton file /etc/nginx/nginx.conf test is successful.
+
+The file we addedd will be tested as well even if it doesn't show in the output.
+
+To apply the new settings we simply reload nginx
+$ sudo systemctl reload nginx.service
+
+
+Now how we create a LOAD BALANCER?
+
+We use nginx of course as well.
+
+$ sudo vim /etc/nginx/sites-available/lb.conf
+
+upstream mywebservers {
+    server 1.2.3.4;
+    server 5.6.7.8;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://mywebservers;
+    }
+}
+
+With this the load Balancer is configured to use ROUND ROBIN. THere are different configurations. For example if we want to tell nxing to redirect more on
+a server then to another one we can specify a weight
+
+upstream mywebservers {
+    least_conn;
+    server 1.2.3.4 weight=3;
+    server 5.6.7.8;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://mywebservers;
+    }
+}
+
+
+In another case if we are making some maintenance. We can add the down keyword to tell not to contact that server.
+
+upstream mywebservers {
+    least_conn;
+    server 1.2.3.4 weight=3;
+    server 5.6.7.8 down;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://mywebservers;
+    }
+}
+
+Another thing that can happen is that one of our server goes down, and we need a backup. In this case 10.20.30.40 will never be used unless one of
+1.2.3.4 or 5.6.7.8 will break down.
+
+upstream mywebservers {
+    least_conn;
+    server 1.2.3.4;
+    server 5.6.7.8;
+    server 10.20.30.40 backup;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://mywebservers;
+    }
+}
+

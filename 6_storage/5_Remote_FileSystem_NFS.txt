@@ -1,0 +1,129 @@
+Use Remote Filesystem: NTFS
+
+Sometimes we need data that resides in a different system from the one we are currently logged into.
+There are multiple protocol that allow us to access remote file system.
+
+Remember:
+A PROTOCOL IS A LANGUAGE THAT CLIENT AND SERVER USE TO COMMUNICATE
+
+Linux supports many protocols for the purpose of sharing file systems, but for sharing data between two linux computer, the NFS protocol is most often used
+
+There are two parts:
+Setting up the NFS server
+Setting up the NFS clients
+
+On the server we configure evertything to allow it to share a file system with the world, and on the client side we configure everything to allow them to
+mount the remote file system from that server.
+
+On the server side, the one we're sharing data from, we first need to install the NFS kernel server
+
+$ sudo apt install nfs-kernel-server
+
+Next we need to tell our NFS server what file systems or directories we want to share
+
+$ sudo vim /etc/exports
+...
+# Example for NFSv2 and NFSv3
+# /srv/homes        hostname1(rw,sync,no_subtree_check) hostname2(ro,sync,no_subtree_check)
+#
+
+
+These show us a few examples and it teaches us how to define our shares.
+/srv/homes => The path in the directory we want to share. For example in our case /nfs/disk1/backups. We can also point to a subdirectory belonging to our filesystem
+
+hostname1(rw,sync,no_subtree_check) => Next we need to choose who or what can access the share, so which nfs client should be used our filesystem.
+            For example "example.com" or "server1.example.com". Instead of hostname we can use the IP address 10.0.0.9. There is a third options, if we
+            want to allow an entire range of IPS to access this share, we can use the CIDR notation for example something like this:
+            10.0.16.0/24. In the parenthesis you specify the options.
+
+hostname2(ro,sync,no_subtree_check) => What is interesting is that we can enumerate different hostname and we can do it on the same line.
+
+The important options to know are rw, ro, rsync, async, no_subtree_check and no_root_squash
+
+rw => read/write This allows clients mounting the share remotely to both read and write to this file system or subdirectory
+ro => readonly this allows the clients to read but not write
+sync => synchronous writes of data that is, nfs ensures that data written by a client is actually saved on the storage device before reporting the
+        operation si successful
+async => A client can issue multiple write requests and NFS can report that the writes are completed even before they're actually saved on the storage device
+        Async allows clients to do things faster, but it does not guarantee that all the changes are actually stored
+no_subtree_check => Disable subtree checking. We can export the entire filesystem but we can also export a subdirectory here like /nfs/disk1/backup/databases.
+        If subtree checking would be active the NFS server would always check if a requested file resides in the specific subdirectory that was exported
+        Which can cause a few issue when files are renamed or move to another subdirectory. That's why by default, no subtree check will be assigned
+        to all NFS exports, even if we don't specify
+no_root_squash => Allows a root user on the NFS client to also have root privileges on a remote NFS share they mount. By default nfs squash root privileges
+        which means you won't be able to use your root privileges, because on the remote filesystem you're downgraded as a regular user. With this option
+        root on the client will be treated as a root user on the remote file system
+
+As always we can use
+
+$ man exports
+
+So if we want the computer 127.0.0.1 to be able to mount  /etc directory but only as read only we can edit
+
+$ sudo vim /etc/exports
+
+and add this line
+
+/etc 127.0.0.1(ro)
+
+To apply this changes we use this command:
+
+$ sudo exportfs -r
+-r stands for re-export
+
+To see the current exported NFS shares we can type
+
+$ sudo exportfs -v
+-v stands for verbose
+
+Consider that NFS will add some options by default, even if they are not specified by us
+
+
+TIPS:
+
+We can also use wildcards in the hostname field
+
+/etc    *.examine.com(ro,sync,no_subtree_check)
+
+To share with any client you can use an asterisk
+
+/etc    *(ro,sync,no_subtree_check)
+
+
+
+Now let's move on the CLIENT SIDE
+
+First we need to be sure to have all the utilities necessary
+
+$ sudo apt install nfs-common
+
+The general syntax to mount a remote NFS share is:
+
+$ sudo mount IP_or_hostname_of_server:/path/to/remote/directory /path/to/local/directory
+
+
+
+We want three things here:
+
+1 Mount something from a NFS server with IP address 127.0.0.1
+2 Mount the /etc filesystem or directory from that server
+3 finally mount this onto our local directory /mnt
+
+So something like this:
+
+$ sudo mount 127.0.0.1:/etc     /mnt
+
+The rest of the command is more or less the same:
+
+To unmount
+
+$ sudo unmount /mnt
+
+The same if we want to mount it at boot time
+
+We edit the fstab file
+
+127.0.0.1:/etc      /mnt        nfs     defaults        0       0
+
+As you can see the filesystem type should be nfs and since it's not a local folder we don't need to check our filesystem for errors so the last
+two columns should be 0 and 0

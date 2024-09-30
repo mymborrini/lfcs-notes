@@ -1,0 +1,212 @@
+Configure SSH Servers and Clients
+
+
+CONFIGURE SSH SERVER
+
+So we need to things, an ssh client on our local computer and an ssh daemon running on the remote Linux server.
+
+Our Linux machine is already running the OpenSSH daemon so how we can configure it?
+
+$ sudo vim /etc/ssh/sshd_config
+
+sshd means ssh daemon.
+
+We can configure the client as well:
+
+$ sudo vim /etc/ssh/ssh_config
+
+Let's start by confiure the daemon
+
+$ sudo vim /etc/ssh/sshd_config
+...
+Include /etc/ssh/sshd_config.d/*.conf
+
+# We can configure the port where our daemon is listening.
+# Port 22
+#
+# AddressFamily any
+...
+
+What is AddressFamily in the first place? Let's check the manual
+
+$ man sshd_config
+...
+/Family
+
+We find the description for AddressFamily, which is what we are intereseted about. In this case AddressFamily is something related to accept ipv4, or ipv6 connections
+or any of them.
+...
+AddressFamily inet
+...
+In this case we specify we only accept connections from ipv4
+
+Now let's consider another example; we have 2 ips connected to our computer. Once is the 203.0.113.1 (connected to the outside) and another one, 10.11.12.9
+connected to our internal Network.
+
+If we want ssh to only works for our internal Network
+...
+ListenAddress 10.11.12.9
+...
+
+
+Another good to know option is the PermitRootLogin
+...
+PermitRootLogin prohibit-password
+...
+By default it allows the root user to log in, but only if authentication is done without a password, for example using ssh keys.
+
+If we don't want root user to login
+...
+PermitRootLogin no
+...
+
+SSh support many login mechanism, but the two most popular are passwords and ssh keys
+
+
+Many administrators prefer to avoid users to login through passwords.
+...
+PasswordAuthentication no
+...
+
+
+However there is another option that might still make password logins possible
+...
+KbdInteractiveAuthentication
+...
+
+The difference between this two is subtle, with PasswordAuthentication set to yes, users can log in by yusing a password but the ssh daemon won't check if the user
+has actually typed the password. User can just use an automatic way of sending the password wihtout actually typing.
+
+KbdInteractiveAuthentication ensures that the user actually types the password. So if we disable both, users would only be able to log in with SSH keys.
+
+Now consider that we want to make a configuration where no user except aaron can login.
+If we scroll down  we can define something like:
+...
+Match User aaron
+    PasswordAuthentication yes
+...
+
+This way we create an exception for aaron.
+
+X11 FOWARDING
+
+In sshd config we see that:
+...
+X11Forwarding yes
+...
+In this case we can use remote graphical desktop for application that are running on a server we are connected through ssh.
+
+Let's exit the editor. After all those changes we have to reload the ssh service for sure
+
+
+$ sudo systemctl reload ssh.service
+
+Consider that as you can see in the begininnig
+...
+Include /etc/ssh/sshd_config.d/*.conf
+...
+
+There is an entire folder of configuration which are included so it could be that changing the main file won't change the behaviour. In our case exists a file
+named
+$ cat /etc/ssh/sshd_config.d/50-cloud-init.conf
+PasswordAuthentication: yes
+
+So changing the PasswordAuthentication in the main file won't have any effect.
+
+
+CONFIGURE SSH CLIENT
+
+There is no an ssh client config file by default applied to all users. That's because exists one which is globally for all the users.
+To create a config file for our current user. Simply create a
+
+.ssh/config file
+
+To see what options we can set in this file we can type (notice that is ssh_config and not sshd_config)
+
+$ man ssh_config
+
+
+For example, imager that whenver we log into an ssh server we need to use a command like ssh jeremy@10.0.0.186.
+
+If we have a lot of servers to connect we maybe forget what to use for each ssh connection to each server
+
+Host ubuntu-vm
+    HostName 10.0.0.186
+    Port 22
+    User jeremy
+
+When we save the file, we need to change the permissions like this:
+
+$ sudo chmod 600 .ssh/config
+
+The ssh client requires that this file cannot bre read by other users for security purposes.
+Now We don't need to remember the user and hostname of each server, we Simply have to remember the host we put in our config
+
+$ ssh ubunut-vm
+
+And evertything works fine.
+
+Now what if we want to define ssh client config for all global users.
+
+The procedure is the same except, the file we have to change is
+
+$ sudo vim /etc/ssh/ssh_config
+
+THis is the main file.
+
+As always is not recommended to modify this file. A future update will modify the changes.
+So a better way is to add a new config file in this directory
+
+/etc/ssh/ssh_config.d
+
+Let's create a new config file
+
+$ sudo vim /etc/ssh/ssh_config.d/99-our-settings.conf
+Port 229
+
+
+
+Here we can define our new default port.
+This is a good way to put custom settings for all of the users.
+
+
+SSH keys
+
+So firstable we need to generate a could of keys. The command is pretty easy ( if you don't want to specify any options )
+
+$ ssh-keygen
+Generating public/private ed25519 key pair.
+...
+....
+
+Now we see that we have created two files (we keep the default names)
+
+$ ls .ssh
+* id_ed25519    id_ed25519.pub
+
+Now if we want to be able to log in to our server with our private key, we have to copy the public key to that server
+
+$ ssh-copy-id jeremy@10.0.0.173
+
+Now in this case the content of .ssh/id_ed25519.pub would be copied over to Jeremy's home directory and will be stored in a file called .ssh/authorized_keys
+
+If we then log in in the system and check the .ssh/authorized_keys file
+
+$ cat .ssh/authorized_keys
+* ssh-ed25519 Svjwojnoiwnvbiownboiwengbownbown jeremy@kodekloud
+
+
+Another way is to add the public key to the .ssh/authorized_keys manually. So you simply copy the pub key and paste it in the authorized_keys file.
+
+After we save the file we need to change its permissions
+
+$ sudo chmod 600 .ssh/authorized_keys
+
+
+Another importat file in the .ssh directory is the known_hosts. For security reason ssh does not allow to connect to a host whose fingerprint does not Match
+
+To remove a host from known_hosts
+
+$ ssh-keygen -R 10.0.0.251
+
+This will remove the fingerprint stored for the server with the IP address 10.0.0.251

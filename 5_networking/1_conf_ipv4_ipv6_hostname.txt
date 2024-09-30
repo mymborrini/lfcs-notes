@@ -1,0 +1,397 @@
+Configure IPv4 and IPv6 Networking and hostname resolution
+
+BASIC CONCEPTS:
+
+
+IPv4
+
+To be able to communicate across networks, a device needs an IP address.
+There are two kind of IPs: IPv4 and IPv6
+
+In IPv4 values can vary from 0 to 255. ( Each value is expressed in 8 bit and in 8 bit you can represents a number from 0 to 255)
+
+00000000 -> 0
+11111111 -> 255
+
+So an IP like the following
+
+192.168.1.101 in decimal is actaully this in binary:
+11000000.10101000.00000001.01100101
+
+The binarry representation is important for the following:
+
+192.168.1.101/24
+
+The /24 at the end. This is called CIDR notation. This tell us that the FIRST 24 bits of this address are the PREFIX of this network
+
+
+ 11000000.10101000.00000001.     01100101
+|___________________________|   |________|
+              |                      |
+        Network prefix          Host prefix
+
+
+So this means that 192.168.1 is the network prefix. Basically the address of the network itself. 101 instead is the specific device of that network.
+
+This means that any IP from
+
+192.168.1.0 -> 192.168.1.255 belongs to the same network
+
+Now if the prefix is different for example:
+
+192.168.1.101/16 It means that the only 16 bits are the network prefix
+
+
+ 11000000.10101000.     00000001.01100101
+|__________________|   |__________________|
+          |                      |
+    Network prefix          Host prefix
+
+
+So we can have Ips from
+
+192.168.0.0 -> 192.168.255.255
+
+
+
+IPv6
+
+Instead of 32 bits in IPv6 you have 128 bits
+
+Here is an example of an IPv6 address
+
+2001:0db8:0000:00000:00000:ff00:0042:8329
+
+It's a little bit different in 3 ways:
+
+1 - We have 8 groups of numbers instead of 4
+2 - These numbers are not in decimal format. Instead they are in hexadecimal format. There are 16 hexadecimal digits: 0,1,2,3,4,5,6,7,8,9,A,B,C,D,E,F
+    Converting them in decimal notation A is 10, B is 11 and so on F is 15. A number like ffff is equivalent to 65535 in decimal notation.
+3 - Each number is separated by the semicolumn carachter
+
+Since IPv6 addresses is way too long they are generally written shorter renivubg tge 0 at the beginning of each numer
+
+2001:db8::ff00:42:8329
+
+Note that 3 00000 is represented by 2 semicolon
+
+
+
+Cidr also support CIDR notation so an address like this
+
+2001:0db8:0000:00000:00000:ff00:0042:8329/64
+
+Each group of two hexadecimal digit is 8 bit -> so 64/8 = 8
+
+ 20 01 : 0d b8 : 00 00 : 00 00 : 00 00 : ff 00 : 00 42 : 83 29
+|______________________________||_____________________________|
+              |                                 |
+        Network prefix                     Device ip
+
+
+
+CONFIGURATION ON LINUX (UBUNTU):
+
+The ip command can help us discover everything we knows about network configuration
+
+$ ip link
+1: lo: ....
+2: enp0s3: ....
+3: enp0s8: ....
+
+This shows us out networking devices, also called network interfaces in Linux terminology. Some are real devices like Ethernet cards, wireless cards etc.
+But other devices shown here can be virtual.
+
+1: lo:
+Is an interface generally shown at the top and is the loopback interface. Is a virtual interface. It is used by the system when it needs to connect to itself.
+For example when a program wants to connect to a database application running on the same system it goes to 127.0.0.1 through this loopback device
+
+2: enp0s3:
+Is an interface representing a real device, in this case an Ethernet card
+
+
+To display the IP addresses configured for these interfaces, we can run IP address.
+
+$ ip address === ip addr === ip a
+1: lo: ....
+2: enp0s3: ....
+3: enp0s8: ....
+
+This format is a little bit unreadable so to make it a little bit readable
+
+$ ip -c  addr
+
+So in this output we can see that generally ipv4 and ipv6 are configured for each interface.
+But notice the output for the third interface: enp0s8. We can see it's marked as being down. We can also see it doesn't have any IP address configured.
+To make the interface active or bring it up:
+
+$ sudo ip link set dev enp0s8 up
+
+Now if we check th ip addresses again
+
+$ ip -c  addr
+...
+We can see that even the last interface is up and cionfigued with an IPv6 for itself.
+If we want to manually add an IPv4 for that interface we can manually do that
+
+$ sudo ip addr add 10.0.0.40/24 dev enp0s8
+
+Now if we check again an IPv4 is added. To add an IPv6 things are more or less the same.
+
+$ sudo ip addr add fe80::5054:ff:fe1f:8054/64 dev enp0s8
+
+Now that our interface can have multiple ip, to delete some:
+
+$ sudo ip addr delete fe80::5054:ff:fe1f:8054/64 dev enp0s8
+
+And to bring this network device down
+
+$ sudo ip link set dev enp0s8 down
+
+
+The trouble with setting IPs with the IP command is that these changes are temporary. To make this change permanently we use netplan. It's simply a tool
+whichread some configuration files and tell other devices to configure network accordingly. On ubuntu server, netplan sends instructions
+to Systemd's network daemon called systemd-networkd.
+
+To see the actual configuration
+$ sudo netplan get
+network:
+    version: 2
+    ethernets:
+        enp0s3:
+            dhcp4: true
+
+
+To write dhcp4 true it makes this device ask for network settings from a DHCP server. The '4' refers to IPv'4' settings. A dhcp server is often used to auto
+configure IPs for the devices on a network.
+
+Netplan configuration file is stored in /etx/netplan directory. A file already exist with the configuration we saw before when we type 'netplan get'
+
+Now let's create a new file dedicated to a different ethernet device on this system
+
+$ sudo vim /etc/netplan/99-mysettings.yaml
+network:
+    version: 2
+    ethernets:
+        enp0s8:
+            dhcp4: false    # we don't want the device to autoconfigure with the dhcp server
+            dhcp6: false
+            addresses:
+            - 10.0.0.9/24   # This way we specify the IP address
+            - fe80::5054:ff:fe1f:8054/64
+
+netplan will resolve all the /etc/netplan files in alphabetical order, so if we prefix with 99 it will be processed as last.
+
+Save the file and to apply our netplan configuration
+
+$ sudo netplan apply
+
+If make ssomething worng we loose connectivity, so netplan gives us somehting to manage rollback to this configuration.
+
+$ sudo netplan try
+...
+**... WARNING **: Permissions for /etc/netplan/99-mysettings.yaml are too open. Netplan configuration should not be accessible by others.
+...
+Press ENTER before the timeout to accept the new configuration
+Chnages will revert in 120 seconds
+
+If you don't type ENTER everything will be roll back in 2 minutes.
+
+If we don't want to wait for 2 minutes we can pass the timout option
+
+$ sudo netplan try --timeout 30
+
+To cancel the operation we can press Ctrl + C
+
+In order to manage the WARNING we can simply:
+
+sudo chmod 600 /etc/netplan/99-mysettings.yaml
+
+If now we check with ip a, we can see our interface to be UP and work as expected.
+We can check also the netplan get and see the whole configuration.
+
+Now we can some additional configuration settings that may be useful.
+
+
+$ sudo vim /etc/netplan/99-mysettings.yaml
+network:
+    version: 2
+    ethernets:
+        enp0s8:
+            dhcp4: false    # we don't want the device to autoconfigure with the dhcp server
+            dhcp6: false
+            nameservers:
+                addresses:
+                - 8.8.4.4
+                - 8.8.8.8
+            addresses:
+            - 10.0.0.9/24   # This way we specify the IP address
+            - fe80::5054:ff:fe1f:8054/64
+            routes:
+            - to: 192.168.0.0/24
+              via: 10.0.0.100
+            - to: default
+              via: 10.0.0.1
+
+
+
+We can add nameservers.addresses to set specific DNS names for domain resolution
+We can specify routes as well.
+The first one tells our machine that when it wants to reach any IP in the 192.168.0.0 network it can contact the server at 10.0.0.100
+The server acts as middleman, passing data from one network to the other.
+The other route specifies that if the computer can't figure out what route to use from everything it  has available, it can fall back to this default route.
+10.0.0.1 is often called a gateway since it's a door to an external world from this network to any other network.
+
+For example, when we use the internet at home our router is ususally use the gateway because it helps us send data from our home network out to any other
+network in the world.
+
+Now apply our new configuration
+
+$ sudo netplan try
+
+
+Now we can check our networks route with this command:
+
+$ ip route
+default via 10.0.0.1 dev enp0s8 proto static
+....
+192.168.0.0/24 via 10.0.0.100 dev enp0s8 proto static
+
+And we can check our dns resolve names
+
+$ resolvectl status
+Global
+...
+Link 2 (enp0s3)
+...
+Link 3 (enp0s8)
+Current DNS Server: 8.8.4.4
+
+As you can see the DNS resolver we settled  only for the enp0s8.
+To make it globally we can edit /etc/systemd/resolved.conf file
+
+In the DNS= line (uncomment) add
+
+DNS=1.1.1.1 9.9.9.9
+
+We add this two dns server
+
+$ sudo systemctl restart systemd-resolved.service
+
+$ resolvectl status
+
+Global
+...
+DNS Servers: 1.1.1.1 9.9.9.9
+Link 2 (enp0s3)
+...
+Link 3 (enp0s8)
+Current DNS Server: 8.8.4.4
+DNS Servers: 8.8.4.4 8.8.8.8
+
+We can always use this command for cleaner details refarding dns setting
+
+$ resolvectl dns
+Global: 1.1.1.1 9.9.9.9
+Link 2 (enp0s3):
+Link 3 (enp0s8): 8.8.4.4 8.8.8.8
+
+What if we want to connect to a server by name, because we don't want to remember each time the IP. For example a dbserver
+
+$ sudo vim /etc/hosts
+#
+127.0.0.1 localhost
+127.0.123.123 dbserver
+#
+
+This tells our machine to asspciate dbserver with that ip. This way we can ping dbserver
+
+$ ping dbserver
+....
+
+
+To understand how to configure netplan we can always check for the manual and search for address label. THere are some examples that can help us see the
+label to configure our netplan network.
+
+We have an additional documentation under
+
+/usr/share/doc
+
+This includes additional documentation for various software packlages, and in the case of netplan we can get access to a few example configuration file.
+
+In this case
+
+$ ls /usr/share/doc/netplan/examples
+
+
+START, STOP AND CHECK THE STATUS OF NETWORK SERVICE
+
+Most servers have at least a few services running on them that deal with network data in one way or another:
+sshd, mariadbd, nginx...
+
+Let's see how we can inspect what programs are currently running and waiting for incoming network connections:
+
+We can use two utilities ss and netstat (soon deprecate)
+
+To see programs that are ready to accept incoming network connections, we can use this command:
+
+$ sudo ss -ltunp
+* Netid         State       Recv-Q      Send-Q          Local Address:Port      Peer Address:Port           process
+* tcp           LISTEN      0           128             0.0.0.0:22              0.0.0.0:*                   users:(("mariadbd", pid=738, fd=20))
+* tcp           LISTEN      0           128             [::]:22                 0.0.0.0:*                   users:(("sshd", pid=679, fd=3))
+* tcp           LISTEN      0           80              127.0.0.1:3306          [::]:*                      users:(("sshd", pid=679, fd=4))
+
+-ltunp
+- l = listening, listen in this context means that something is scanning for incoming network data and ready to accept
+- t = tcp, list tcp connections
+- u = udp, list udp connections
+- n = numeric values ( without the n option will show us the service listen instead of the port number).
+- p = shows which processes involeved with each entry of our outputs
+
+
+Normally, ss does not require root privileges, but in this case, because we use -p, we'll need to add sudo. That's becausew we need root privileges to explore
+process owned by root that are listening for incoming
+
+127.0.0.1:3306 An entry like this means the program is listening for incoming connections from the system itself, but not other computers.
+127.0.0.1 is the IP address for the so-called localhost. This way a web server application like nginx can connect to a database server like MariaDB if they both
+running on the same computer. In a way MariaDB is in a protective bubble. It protects connections only from programs running on our server, but ignores connections
+coming from external devices.
+
+0.0.0.0:22 | [::]:22 An entry like those two instead accept connections from every computer. The difference between this two is that the first one is for
+IPv4 and the second one for IPv6. So ssh daemon accept connections on both the IPv4 and IPVs protocols in this case.
+
+In the process we can check the name of the services and then we can check the status
+
+$ systemctl status mariadb.service
+$ systemctl status ssh.service
+
+Note that we omit the d and the end that stands for daemon.
+
+The service names on ubuntu just use the name of the program itself. But on other operating system like Red hat services do have that D letter at the end.
+
+So while in ubuntu there is the ssh service in red hat the same service exist as sshd.
+
+If we stop mariadb with the ususal
+
+$ systemctl stop mariadb.service
+
+We can see that mariadb. service is no more inside the ss list
+
+$ sudo ss -ltunp
+* tcp           LISTEN      0           128             [::]:22                 0.0.0.0:*                   users:(("sshd", pid=679, fd=3))
+* tcp           LISTEN      0           80              127.0.0.1:3306          [::]:*                      users:(("sshd", pid=679, fd=4))
+
+
+Note that ss shows the PID in each process in case we need to use it with other commands.
+
+For example
+
+$ ps 679
+or
+$ sudo lsof -p 679
+
+In the end netstat use almost the same options of ss
+
+$ sudo netstat -ltunp
+
+This command will do the same as ss -ltunp

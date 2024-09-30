@@ -1,0 +1,162 @@
+Use Network Block Device: NBD
+
+We'll explore how to mount block devices from remote servers. We learn about special files that can reference our storage devices
+For example: /dev/sda points to our first storage disk and /dev/sda1 poiont to the first partition on the first disk
+
+These are block special files that reference block devices.
+
+Network block devices do a similar thing, but instead of poiting to storage devices pluggen into our  system, they point to a storage device on an
+entirely different computer
+
+
+Let's imagine the following situation
+
+    Server 1                Server 2
+
+    /dev/vda                /dev/vda
+
+    /dev/vdb                /dev/vdb
+
+With NBD we can essentialy add a third disk to our first server
+
+
+    Server 1                Server 2
+
+    /dev/vda                /dev/vda
+
+    /dev/vdb                /dev/vdb
+
+    /dev/nbd0
+
+As far as applications are concerned, /dev/nbd0 looks and behaves just like any other block device, but whenever something reads or writes to this device,
+the requests are sent to the  real block device on server 2
+
+    Server 1                Server 2
+
+    /dev/vda                /dev/vda
+
+    /dev/vdb        ----->  /dev/vdb
+                   |
+    /dev/nbd0  ----
+
+
+When we deal with NBD, we have two locations that need to be configured (as always) the nbd server, containing the real block device that will be shared
+through the network, and the NBD client , where we will attach the remote block Device
+
+
+NBD SERVER CONFIG
+
+$ sudo apt install nbd-server
+
+Next we'll open up the default configuration file
+
+$ sudo vim /etc/nbd-server/config
+
+Now by default the NBD daemon will be run under a user called nbd. But this user does not have privileges to read and write from block devices such as
+/dev/sda
+
+In the configuration there is some hint we can use to run NBD as a root user, for example comment the lines:
+
+#    user=nbd
+#    group=nbd
+
+this way the NBD server will be run as a root user
+
+We also have to add this line
+
+    allowlist = true
+
+THis will allow NBD clients to list what exports a server has available. essentialy we can see what bliock devices it can share with us
+
+Next we have to define what block devices we want to share
+
+[partition2]
+    exportname=/dev/sda1
+
+
+As always, restart the daemon
+
+$ sudo systemctl restart nbd-server.service
+
+Remember in manual section 5 is the one dealing with file formats and conventions
+
+$ man 5 nbd-server
+
+
+NBD CLIENT CONFIG
+
+We first need to install the client
+
+$ sudo apt install nbd-client
+
+This module extends the kernel functionality so that it becomes able to handle remote network block devices
+
+$ sudo modprobe nbd
+
+However this only loads it for the current boot. Each time we restart our operating system, we would need to manually load the module again
+
+In case of debian operating system we can tell them which modules to load at each boot
+
+$ sudo vim /etc/modules-load.d/modules.conf
+
+We can simply type
+nbd
+
+and save the file.
+
+Then we need to connect
+
+$ sudo nbd-client 127.0.0.1 -N partition2
+Negotiation: ..size = 2048MB
+Connected /dev/nbd0
+
+So whenever we use /dev/nbd0 locally, this will actually access /dev/sda2 from the remote server
+
+We can now use /dev/nbd0 as any other block device
+
+$ sudo mount /dev/nbd0  /mnt
+
+We can detach this block device from our system
+
+Firstable we will unmount it
+
+$ sudo unmount /mnt
+
+$ lsblk
+
+NAME            MAJ:MIN     RM      SIZE        RO      TYPE           MOUNTPOINTS
+...
+nbd0            43:0        0       2G         0       disk
+nbd1            43:16       0       0B         0       disk
+...
+nbd15           43:240      0       0B          0       disk
+
+
+The one that represents our remtoe device is the only one with a non zero size.
+
+Now we can detach it by simply typing
+
+$ sudo nbd-client -d /dev/nbd0
+
+$ lsblk
+
+NAME            MAJ:MIN     RM      SIZE        RO      TYPE           MOUNTPOINTS
+...
+nbd0            43:0        0       0B         0       disk
+nbd1            43:16       0       0B         0       disk
+...
+nbd15           43:240      0       0B          0       disk
+
+
+THe fact that the size is 0 means that it was successfully disconnected and it doesn't point to a real remote block device anymore
+
+Of course when using an nbd client we can use an hostname instead of an ip address
+
+$ sudo nbd-client localhost -N partition2
+
+We can of course (thanks to what we set as an option in nbd server allowlist=true)
+
+$ sudo nbd-client -l 127.0.0.1
+Negotiation: ..
+partition2
+

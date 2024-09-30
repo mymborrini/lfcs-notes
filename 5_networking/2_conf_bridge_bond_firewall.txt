@@ -1,0 +1,444 @@
+
+CONFIGURE BRIDGE AND BONDING DEVICES
+
+
+In this lesson we will learn about two concepts:
+
+. How to bridge network devices
+. How to bond network devices
+
+bridge or bond means that we can take or two or more network devices and glue them togheter under the operaing system and this creates a
+VIRTUAL NETWORK DEVICE
+
+
+                BRIDGE
+
+S01,S02 etc stands for server01, server02 etc
+
+                Server
+  -----------------------------------------------
+  |                                             |
+  |     _______________       ________________  |
+  |    |  Network      |      |  Network      | |
+  |    |  Interface 01 |      |  Interface 02 | |
+  -----------------------------------------------
+              |                     |
+          Network 01             Network 02
+              |                     |
+        -------------        --------------
+        |   |   |   |        |   |   |    |
+        S01 S02 S03 S04      S05 S06 S07 S08
+
+
+                BOND
+                Server
+  -----------------------------------------------
+  |                                             |
+  |     _______________       ________________  |
+  |    |  Network      |      |  Network      | |
+  |    |  Interface 01 |      |  Interface 02 | |
+  -----------------------------------------------
+              |                     |
+        --------------------------------
+        |            Network           |
+        --------------------------------
+
+
+So if bridging and bonding glue togheter multiple network devices into a single virtual one how are these methods differnet?
+
+On BRIDGE, we build a bridge between network01 and network02. Such a bridge allows computeres on two separate networks to talk to each other, as if they are
+part of the same network.
+
+In Linux networking terms the bridge is also called the controller, and the network devices that  are part of the bridge are called ports.
+
+On BOND we can take two or more network interfaces and bond them togheter in the same network.
+Depending on the bond type, this can help in different ways:
+
+1 It can make the connection to a netowrk more resilient and able to keep working, even if a network card goes down or gets disconnected
+2 It can increase network throughput, for example if one network card supports a 1000 Ms connection, two cards can be combined to reach much higher speeds.
+  It will not reach 2000 Ms, but it'll be much higher than a single card support.
+3 It can mke connection more reliable. For example, a single network device might experiece a few slowdowns, but if we bond three network devices, we might be
+  able to eliminate those slowdowns and increase stability
+
+
+
+BOND
+
+Consider we have a server with two Network interface connected to the same network
+
+  -----------------------------------------------
+  |        ps1                                  |
+  |     _______________       ________________  |
+  |    |  Network      |      |  Network      | |
+  |    |  Interface 01 |      |  Interface 02 | |
+  -----------------------------------------------
+              |                     |
+        --------------------------------
+        |            Network           |
+        --------------------------------
+
+The problem with this setup is we'd Normally define two separate connections to this network under Linux even through both connections go to the same place
+and this wouldn't provide any of the benefits mentioned earlier. No speed increase and no resistance to failures. A program (ps1) can either use the
+first connection or the second connection to communicate with the network on the bottom, and it would have to pick just one network path that it wants to use.
+Let's consider ps1 use the Network Interface 01.
+
+If the wire of the network interface 01 is cut, then the program suddenly gets disconnected and it fails the data transfer. If we bond these network interfaces
+from an hardware prospective we still have the same setup. But from a software prospective things now go like this:
+
+To any program that wants to reach the network below, it looks like there's a single network interface: the bond we just created. If we have the same problem
+Linux can simply switch over to using Network interface two which still has a functional wire.
+
+BONDING MODES
+
+There are 7 in total (0 - 6)
+
+0 ROUND ROBIN Use network interface in a sequential order
+1 ACTIVE BACKUP  Use a single Interface and keep all the others as a backup, if the actual interface goes down then the backup will take its place
+2 XOR The interface is chosen based on source and destination, if device one, wants to reach device two then it will go always to the same interface
+3 BROADCAST  All data has sent through all interfaces as once
+4 IEEE 802.3 Can help increase netowrk transfer rates above what a single interface supports
+5 ADAPTIVE TRANSMIT LOAD BALANCING It will try to send data from the interface that is least busy
+6 ADAPTIVE LOAD BALANCING tries to load balance both outgoinf and incoming traffic
+
+All network interfaces are called ports
+
+
+
+CONFIGURE BRIDGE AND BONDING DEVICES
+
+in /usr/share/doc/netplan/examples you can find different example yaml file configurations.
+
+$ cat /usr/share/doc/netplan/examples/bridge.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s3:
+      dhcp : no
+  bridges:
+    br0:
+      dhcp: yes
+      interfaces:
+        - enp0s3
+
+We can copy this file to the netplan configuration directory:
+/etc/netplan/99-bridge.yaml
+
+Let's see our interfaces and what we wanna use:
+
+$ ip -c link
+1: lo: <LOOPBACK,UP,LOWER_UP> ...
+2: enp0s3: <BRODCAST,MULTICAST,UP,LOWER_UP> ... state UP ...
+3: enp0s8: <BRODCAST,MULTICAST> ... state DOWN ...
+4: enp0s9: <BRODCAST,MULTICAST> ... state DOWN ...
+
+
+enp0s3 is our main interface, we won't touch that since changing network settings on it might break our current ssh connection, but we can bridge togheter
+the two interfaces enp0s8, enp0s9
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s8:
+      dhcp4 : no
+    enp0s9:
+      dhcp4 : no
+  bridges:
+    br0:
+      dhcp: yes
+      interfaces:
+        - enp0s8
+        - enp0s9
+
+We add enp0s8 and enp0s9 as ethernet connection so the system knows they are interfaces up. We will disable dhcp4 configuration for each networking but we enable
+dhcp4 configuration for the bridge itself. So enp0s8 and enp0s9 won't get an IP address but the bridge will
+
+So if we save the file, confirm the netplan try and make an
+
+$ ip -c link
+1: lo: <LOOPBACK,UP,LOWER_UP> ...
+2: enp0s3: <BRODCAST,MULTICAST,UP,LOWER_UP> ... state UP ...
+3: enp0s8: <BRODCAST,MULTICAST> ... master br0 state UP ...
+4: enp0s9: <BRODCAST,MULTICAST> ... master br0 state UP ...
+5: br0: <BRODCAST,MULTICAST,UP,LOWER_UP> ... state UP ...
+
+As you can see both enp0s8 and enp0s9 belongs to br0 bridge ( master br0 ). br0 seems up so we can check our IP settings.
+
+$ ip -c addr
+...
+...
+5: br0: ...
+inet 10.0.4.15/24 ...
+inet6 ...
+
+So now we can see that our brige interface has its own ip address, so dhcp autoconfiguration works as well.
+
+
+If we now take a look at ip route, we can see that ip routes are configured for this bridge
+$ ip route
+
+default via 10.0.4.2 dev br0 proto dchp src 10.0.4.15
+default via 10.0.0.1 dev enp0s3 proto dchp src 10.0.0.201
+
+10.0.0.0/24 dev enp0s3 proto kernel scope link src 10.0.0.201
+10.0.0.1 dev enp0s3 proto dhcp scope link src 10.0.0.201
+
+10.0.4.0/24 dev br0 proto kernel scope link src 10.0.4.15
+10.0.4.2 dev br0 proto dhcp scope link src 10.0.4.15
+10.0.4.3 dev br0 proto dhcp scope link src 10.0.4.15
+
+...
+
+Now let's see how to BOND the same two interfaces.
+
+First delete the bridge interface
+$ sudo ip link delete br0
+
+Then copy the /usr/share/doc/netplan/examples/bonding.yaml into /etc/netplan/99-bond.yaml
+
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp0s8:
+      dhcp4: no
+    enp0s9:
+      dhcp4: no
+  bonds:
+    bond0:
+      dhcp4: yes
+      interfaces:
+      - enp0s8
+      - enp0s9
+      parameters:
+        mode: active-backup
+# We can use all the modes with see before, of course you can see them in man netplan by searching for bond
+# balance-rr        0       ROUND ROBIN
+# active-backup     1       ACTIVE BACKUP
+# balance-xor       2       XOR
+# broadcast         3       BROADCAST
+# 802.3ad           4       IEEE 802.3
+# balance-tlb       5       ADAPTIVE TRANSMIT LOAD BALANCING
+# balance-alb       6       ADAPTIVE LOAD BALANCING
+        primary: enp0s8
+        mii-monitor-interval: 100
+
+Consider when creating this file that the two interfaces enp0s8 and enp0s9 can be define in antoher file. So remember always to check the existing status
+of netplan through a
+$ netplan get
+
+$ ip -c addr
+...
+3: enp0s8: <BRODCAST,MULTICAST> ... master bond0 state UP ...
+4: enp0s9: <BRODCAST,MULTICAST> ... master bond0 state UP ...
+5: bond0: <BROADCAST,MULTICAST,MASTER,UP,LOWER_UP> ... state UP ...
+inet 10.0.3.16/24 ...
+inet6...
+
+
+
+CONFIGURE FIREWALL ( PACKET FILTERING )
+
+This wall can defend for both network data to coming in and for network data that coming out.
+There are many type of firewall,
+
+ application firewall can check application apps and can allow on denied traffic based on rules which are related to that application.
+
+Linux firewall decide what to do with Network data packet itself not related to an application.
+
+To configure a firewall you can use a tool named ufw, by default is disabled
+
+$ sudo ufw status
+Status: inactive
+
+When we work we have to remember to add at least one rule for ssh, otherwise we won't be able to work with it anymore. When ufw is active it blocks all incoming
+data. This is called a whitelist approach
+
+$ sudo ufw allow 22
+
+This allows connections for both TCP protocols and UDP protocols.
+If we want to specify a particular protocol:
+
+$ sudo ufw allow 22/tcp
+
+Now we can enable ufw
+
+$ sudo ufw enable
+
+Now we can check our firewall again, but we add the verbose command:
+
+$ sudo ufw status verbose
+Status: active
+Logging: on (low)
+Default: deny (incoming), allow (outgoing), deny (routed)
+New profiles: skip
+
+To              Action              From
+--              ------              -----
+22              ALLOW IN            Anywhere
+22 (v6)         ALLOW IN            Anywhere (v6)
+
+
+We can see we have two rules, once for ipv4 and the other for IPv6.
+We can see the default policy as well, for incoming data everything is denied exept for what we defined belowed. For data that is outgoing everything is permitted
+Routed packets are disallowed for now, this will change we we start using port redirection and NAT.
+
+THe next step is define the rules in a better way
+
+$ ss -tn
+State       Recv-Q      Send-Q      Local Address: Port         Peer Address: Port          Process
+ESTAB       0           36          [::fff:10.0.0.100]:22       [::ffff:10.0.0.192]:57128
+
+10.0.0.192 is our personal IP we are connecting from, so let's allow only our ip address to connect to this computer
+
+$ sudo ufw allow from 10.0.0.192 to any port 22
+
+To ANY means that the connection can arrives to ANY network interface in this machine. If we want to specify a network interface we set here the id.
+
+We can check the status again
+
+$ sudo ufw status numbered
+To              Action              From
+--              ------              -----
+[1] 22              ALLOW IN            Anywhere
+[2] 22              ALLOW IN            10.0.0.192
+[3] 22 (v6)         ALLOW IN            Anywhere (v6)
+
+As you can see we just add a rule, we don't remove the first one. So right now every IP address can still connect through ssh to our machine.
+
+$ sudo ufw delete 1
+
+We still have the [3] rule which granted access to any IPv6 address.
+
+Another way to do it:
+
+$ sudo ufw delete allow 22
+
+In this case it will delete all the two rules we created before with the command
+
+$ sudo ufw allow 22
+
+If we inspect our firewall again
+
+$ sudo ufw status
+To              Action              From
+--              ------              -----
+22              ALLOW IN            10.0.0.192
+
+We can specify a range of IPs instead of a single IP
+
+$ sudo ufw allow from 10.0.0.0/24 to any port 22
+
+If we want to be able from this range of IPs to access any port we can simply:
+
+$ sudo ufw allow from 10.0.0.0/24
+
+
+Now what if we want to accept all the traffic from Ips in this range exept from one of them. (10.0.0.37)
+
+$ sudo ufw deny from 10.0.0.37
+
+Not let's take a look at the current rules
+
+$ sudo ufw status numbered
+To                      Action              From
+--                      ------              -----
+[1] 22                  ALLOW IN            10.0.0.192
+[2] 22                  ALLOW IN            10.0.0.0/24
+[3] Anywhere            ALLOW IN            10.0.0.0/24
+[4] Anywhere            DENY IN            10.0.0.37
+
+Now delete the first two rules to simplify
+
+$ sudo ufw delete 1
+
+$ sudo ufw status numbered
+To                      Action              From
+--                      ------              -----
+[1] 22                  ALLOW IN            10.0.0.0/24
+[2] Anywhere            ALLOW IN            10.0.0.0/24
+[3] Anywhere            DENY IN            10.0.0.37
+
+
+As you can see now, rule number 2 becomes rule number 1 and so on.
+
+$ sudo ufw delete 1
+
+$ sudo ufw status numbered
+To                      Action              From
+--                      ------              -----
+[1] Anywhere            ALLOW IN            10.0.0.0/24
+[2] Anywhere            DENY IN             10.0.0.37
+
+The problem here is that firewall will process the rules from top to bottom.
+
+So the firewall looks at the first rules and it sees that traffic from 10.0.0.37 is allowed, it doesn't even get to the second deny rule
+
+So we start by deleting the deny rule
+
+$ sudo ufw delete 2
+
+And now after checking the help if you need
+
+$ sudo ufw insert 1 deny from 10.0.0.37
+
+$ sudo ufw status numbered
+To                      Action              From
+--                      ------              -----
+[1] Anywhere            DENY IN             10.0.0.37
+[2] Anywhere            ALLOW IN            10.0.0.0/24
+
+
+When we insert a rule like this everything else is pushed down, so rule number 1 becomes rule number 2 and so on.
+
+Like we said before a machine can have multiple network interface, once for connecting to the internet and another one for connecting to an internal network
+for example...
+
+We have this situation
+
+$ ip link
+1: lo:...
+2L enp0s3: ... state UP....
+
+Now we want that this interface will connect only to our internal network
+
+Right now if we do
+
+$ ping -c 4 8.8.8.8
+
+It will responds... So the packets can go Anywhere
+
+
+$ sudo ufw deny out on enp0s3 to 8.8.8.8
+
+If we try our ping again it does not work.
+
+$ sudo ufw status numbered
+To                      Action              From
+--                      ------              -----
+[1] Anywhere            DENY IN             10.0.0.37
+[2] Anywhere            ALLOW IN            10.0.0.0/24
+[3] 8.8.8.8             DENY OUT            Anywhere on enp0s3  (out)
+
+Let's write a more complex rule
+$ ip a
+$ ip link
+1: lo:...
+2L enp0s3: ... state UP....
+    inet 10.0.0.100/24
+
+$ sudo ufw allow in on enp0s3 from 10.0.0.192 to 10.0.0.100 proto tcp
+
+$ sudo ufw allow out on enp0s3 from 10.0.0.100 to 10.0.0.192 proto tcp
+
+$ sudo ufw status numbered
+To                              Action              From
+--                              ------              -----
+[1] Anywhere                    DENY IN             10.0.0.37
+[2] Anywhere                    ALLOW IN            10.0.0.0/24
+[3] 8.8.8.8                     DENY OUT            Anywhere on enp0s3  (out)
+[4] 10.0.0.100/tcp on enp0s3    ALLOW IN            10.0.0.192/tcp
+[3] 10.0.0.192/tcp              ALLOW OUT            10.0.0.100/tcp on enp0s3  (out)
+
+

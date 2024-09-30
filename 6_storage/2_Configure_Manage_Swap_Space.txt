@@ -1,0 +1,83 @@
+Configure and Manage Swap Space
+
+Swap is an area where Linux can temporarily move some data from the computer's Ram.
+
+Let's imagine we have a computer 4G of Ram.
+
+We open a video editor and this process will requests 2GB of RAM
+We open an audio editor and this process will requests 2Gb of RAM.
+
+We now want to open chrome, we have no more RAM, but we have a SWAP partition.
+Since we have the video editor opened in the background (we didn't use it in one hour), the os decides to move the video editor from the RAM memory to the
+swap partition. So in this case it free up 2G of RAM.
+
+To see if the system use any of the swap area we can use this command:
+
+$ swapon --show
+
+It does not show anything
+
+In the previous lesson we configure a partition to be of type swap. Now we have to prepare it. If you ever formatted a USB stick with a file system like Fat32
+or NTFS, this is a similar process: it basically writes some small header data on the partition and labels it. So the system knows this is meant to be used as
+a swap area.
+To format it as a swap we use this command:
+
+$ sudo mkswap /dev/sdb3
+Setting up swapspace version 1, size = 2 GiB (2146410496)
+no label, UUID=4567jkwegvbwhijbv87
+
+To see the configuration
+
+$ sudo swapon --verbose /dev/sdb3
+swapon: /dev/sdb3: found signature [pagesize=4096, signature=swap]
+swapon: /dev/sdb3: pagesize=4096, swapsize=2146414592, devsize=2146418176
+swapon: /dev/sdb3
+
+Seems perfect, now check again
+
+$ swapon --show
+NAME        TYPE        SIZE        USED        PRIO
+/dev/sdb3   partition     2G          0B          -2
+
+As always this kind of changes is temporarily, so if we reboot the system it won't be used as swap anymore
+
+To tell linux to not use this partition as swap anymore
+
+$ sudo swapoff /dev/sdb3
+
+
+
+Instead of partition we can use personal file as a swap. If you install ubuntu on a personal computer, that's what it will do by default.
+
+Let's try to do it manually. We first need to create a special file full of binary zeros.
+
+$ sudo dd if=/dev/zero of=/swap bs-1M cout=128 status=progress
+
+if=/dev/zero             =>    Use as input file the one in /dev/zero. That's a special device that generates an infinite number of zeros when an application
+                                reads from it.
+of=/swap                 =>     Place the output file in /swap. So we'll tell it to write the contents in a file that we store at this path
+BS=1M count=128          =>     The block size should be 1M, and it should write this block 128 times. So in total we have a file of 128MB
+status=progress          =>     Will simply show us the progress that's making while writing to that file
+
+This file is small, so it will get written fast, but if we have a large file, we might have to wait a while
+
+
+Regular users should not be allowed to read the swap file. That's because this potentially gives them access to the memory contents of programs that other people
+might be userd. So we set permission, only for the root user to read/write to this file
+
+$ sudo chmod 600 /swap
+
+
+Now the process is the same, and we ca use this file as swap on our system
+
+$ sudo mkswap /swap
+
+And we can check the active swap again
+
+$ swapon --show
+NAME        TYPE        SIZE        USED        PRIO
+/dev/sdb3   partition     2G          0B          -2
+/swap       file          2G          0B          -3
+
+As you can see we can use multiple things as swap at the same time. We can use multiple files or multiple partitions if we want to.
+

@@ -1,0 +1,114 @@
+
+In order to create vm there are many software solutions out there to create this kind of setup (vm configuration) but in Linux the most popular one is
+QEMU-KVM ( Quick emulator Kernel based VM)
+
+
+VIRSH let us manage vm from command line, is similar to VirtualBox, but it use command line instead of a graphical GUI
+
+$ sudo apt install virt-manager
+
+
+Then we create a folder and a configuration file.
+
+$ mkdir machines
+$ vim testmachine.xml
+<domain type="qemu">
+    <name>TestMachine</name>
+    <memory unit="GiB">1</memory>
+    <vcpu>1</vcpu>
+    <os><type arch+"x86_64">hvm</type></os>
+</domain>
+
+hvm stands for hard virtual machine. A real virtual machine will require a lot of more stuff like network, storage and so on.
+
+$ virsh define testmachine.xml
+
+$ virsh help
+WIll show the commands available
+In particular the word "domain" refers to a VM
+
+If we type
+$ virsh list
+
+We will not see anything, what we defined before (testmachine) is not active yet.
+
+$ virsh list --all
+Id      name        State
+-------------------------
+-       TestMachine shut off
+
+$ virsh start TestMachine
+$ virsh reset TestMachine
+$ virsh shutdown TestMachine
+
+If we need to force the power off
+
+$ virsh destroy TestMachine
+
+We can have a better understand of each command with the help after the command for example
+
+$ virsh undefine help
+
+In case we want to remove all the storeage of the TestMachine
+$ virsh undefine --remove-all-storage TestMachine
+
+When we start up our real server, the virtual machines on it have to be manually started.
+
+$ virsh define testmachine.xml
+
+If we want to start the machine when we boot the server
+
+$ virsh autostart TestMachine
+
+Or if we want a VM to not autostart
+
+$ virsh autostart --disable TestMachine
+
+To see the info:
+$ virsh dominfo TestMachine
+
+Imagine to want to make an upgrade, for example upgrade the CPU for two cores.
+
+$ virsh set <tab> <tab> (to see all the options)
+
+In this case:
+
+$ virsh help setvcpus
+
+And then we will be able to finally write down the full command:
+
+$ virsh setvcpus TestMachine 2 --config --maximum (this will assign the maximum number of cores for this VM )
+
+And then we assign two cores to it
+
+$ virsh setvcpus TestMachine 2 --config
+
+To make the changes we have to stop the VM, since there is no OS on it:
+
+$ virsh destroy TestMachine
+
+And then we started again for the changes to come active.
+
+Then we can check the domainInfo
+
+$ virsh domainInfo TestMachine
+...
+CPU(s)  2
+...
+
+
+The same for the memory, change the maximum
+
+$ virsh setmaxmem TestMachine 2048M --config
+
+Then we set the memory allocation
+
+$ virsh setmem TestMachine 2048M --config
+
+Then shutdown and restart:
+
+$ virsh destroy TestMachine | $ virsh start TestMachine
+
+
+
+

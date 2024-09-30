@@ -1,0 +1,35 @@
+Installing OS on VM
+
+A different scenario from lesson number 2 is when we want to install an OS on a booting VM
+
+So in this case we create a VM
+
+Create a VM ( vcpus etc ) --> Attach a Virtual CD RAM/ DVD RAM ---> Create an empty Disk image ---> Install an operating system on top of it
+
+$ virt-install --osinfo debian12 --name debian1 --memory 1024 --vcpus 1 --disk size=10 --location /var/lib/libvirt/boot/debian12-netinst.iso --graphics none
+    --extra-args "console=ttyS0"
+
+--extra-args "console=ttyS0" in this case in essence it gives us a way to connect to that virtual machine and interact with it in a text only environment.
+
+Without this option it would boot in such a way that we'd have no way to connect to the console without aa graphical user interface available on the system.
+
+We don't run this command since we don't have a Debiano 12 installation ISO available, and we don't want to download a new one because we have a more efficient
+way to make this done.
+
+We can tell virsh to download the only files that needs for the installation without the whole image, and this will reduce the time for the image to be installed.
+
+
+The command is the same but we change the location from a local location to an internet location
+
+$ virt-install --osinfo debian12 --name debian1 --memory 1024 --vcpus 1 --disk size=10 --location https://deb.debian.org/debian/dists/bookworm/main/installer-amd64/ --graphics none
+    --extra-args "console=ttyS0"
+
+Then the procedure is more or less the same.
+
+At the end instead of opening a console, there will be a blue screen which is an output from the Linux kernel, we're greeted by the installer.
+
+We select the language and the keymap layout and press enter.
+
+With Ctrl + ] we can detach in any moment.
+
+
