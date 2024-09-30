@@ -16,7 +16,7 @@ $ journalctl --help
 
 At the bottom of the help screen you will see that the help page is paginated. So you can use
 
-Arrow up '^', Arrow down 'v', Page Up, Page down to move through the lines. 
+Arrow up '^', Arrow down 'v' or Page Up, Page down to move through the lines. 
 At the end you can type 'q' to exit from the help.
 
 All the main command in linux have their own manual in pages
@@ -51,7 +51,7 @@ $ man man
 * 8 System administration commands (usually only for root)
 * 9 Kernel routines [Non standard]
 
-You tell man you wnat the print f for section 1 like this
+You tell man you want the printf for section 1 like this
 
 $ man 1 printf
 
@@ -118,9 +118,9 @@ And a lot of list of commands will display to help you complete the command you 
 Let's choose
 $ systemctl list-dependencies 
 
-Tab for suggestion and autocompletiosn helps you even in completing tab and filenames
+Tab for suggestion and autocompletions helps you even in completing tab and filenames
 
-To sell all files and directories press TAB three times. 
+To see all files and directories press TAB three times. 
 
 
 
