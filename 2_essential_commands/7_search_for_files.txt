@@ -84,10 +84,27 @@ $ find -mmin -5	# This will find all the files that were modified FROM 5 minutes
 $ find -mmin +5 # This will find all the files that were modified BEFORE 5 minutes ago and FROM the start of time. So any files that were modified more than 5 minutes ago will be listed.
 
 
+But remember this if you type
+
+$ find -mmin 5 and there are 12:05, you will looking for a file modified at 12:01 because the count starts from 12:05 included. So => 12:05, 12:04, 12:03, 12:02, 12:01. So you're looking for file modified between 12:00 and 12:01, and not for file modified between 11:59 and 12:00
+$ find -mmin -5 the problem is the same but in this case you have to count 5 minutes from now so 12:05, 12:04, 12:03, 12:02, 12:01. It means you're looking for file modified between 12:01 and 12:05. To include file modified from 12:00 you have to type -6
+$ find -mmin +5 In this case the current time is skipped. So you're looking for file modified before 12:00
+
+
+Quindi questo e' lo schema del tempo riassuntivo
+                            12:00     12:05 
+| | | | | | | | | | | | | | | | | | | | |
+           +5               |5|  -5     |
+
+
+
+
 A similar option is mtime, that allows you to find the files modified in the last days
 
 $ find -mtime 0 # This will list for the past 24 hours
 $ find -mtime 1 # This will list for file modified from the past 24 hours and the past 48 hours
+
+So in this case is differnet because the count starts from 0 not from 1. 
 
 
 N.B. Modification means editing or creating of file. 

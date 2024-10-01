@@ -30,6 +30,9 @@ So everytime the file is executed is executed as the aaron user.
 
 SGID bit ----> SET GROUP ID BIT
 
+SGID has similar permissions but it applies to both executable and directories. So we have a fileReports  application (in /usr/local/reports ), and the directory belongs to the reports group. So whoever run the application, 
+it has permissions of the reports group. And each file in the directory, even the ones created after will be part of the reports group. And each file executed in that directory will have the permissions of the group. 
+
 As before
 
 $ touch sgidfile
@@ -80,7 +83,9 @@ $ find . -perm /6000
 
 STICKY BIT 
 
-It means that if the sticky bit is set upon a directory, no matter the permissions upon the direcotry only the owner of a file can remove the file inside that direcotry.
+Generally is used when you have a directory shared among different people. You want that only the owner of the file and the root user can delete this file, not all the people which may have access to the directory
+
+It means that if the sticky bit is set upon a directory, no matter the permissions upon the directory only the owner of a file can remove the file inside that directory.
 
 So create a directory stickydir
 

@@ -112,6 +112,8 @@ $ ls -l
 lrwxrwxrwx => the 'l' at the beginning shows us that this is a soft link
 -> /home/aaron/Documents/Pictures/family_dog.jpg display the path where the soft link is poiting to.
 
+rwxrwxrwx As you can see a softlink has all the permissions. This because the the permissions on a soft link does not matter. It's the permission on the file that matters
+
 
 In order to see the path where a softlink is pointing
 
