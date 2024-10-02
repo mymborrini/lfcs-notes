@@ -76,6 +76,12 @@ To effectively replace it we have to add -i (--in-place)
 
  $ sed -i 's/canda/canada/g' userinfo.txt.
 
+If you need to to a case insensitive substitution:
+
+ $ sed -i 's/canda/canada/gI' userinfo.txt.
+
+With the I near the g
+
 sed have a lot of different other use, for example it can separate lines from 3 to 15
 
 sed -n "3,15p" <filename>
@@ -87,11 +93,8 @@ sed '{1,1000d}' <filename>
 If you have to apply an operation only on a range of specific lines for example from line 5 to line 10
 
 
- $ sed -i '5-10s/canda/canada/g' userinfo.txt.
-
-Or if you want to apply an operation only on lines 5 and 10
-
  $ sed -i '5,10s/canda/canada/g' userinfo.txt.
+
 
 If you need to make a replacement but the '/' charachter is in the replacement you can do the followign
 
