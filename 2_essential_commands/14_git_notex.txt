@@ -1,0 +1,26 @@
+Git Notes
+
+1 To see which files the commit changes the command is:
+
+$ git log --raw
+
+If we want to see instead the exact lines that are changed in a commit
+
+$ git show <short-commit-id>
+
+2 When I add some files like this
+
+$ git add "*.html" 
+
+is important to use quotes, because bash can interpreter our '*' in different ways. ALWAYS use quotes when you use '*' 
+
+3 The name of the areas are
+
+'Working area' for all the files that are  not added and we are still working on
+'Staging area' for all the files that are added and ready to be commited.
+
+4 To remove a file or a folder in git (a password that you accidentaly commit for example),
+
+$ git rm <filename>
+
+This will delete the file form the staging area and from the working area as well. So it will remove the file even phisically. And it stages this change for the future commit. 

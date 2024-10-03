@@ -36,7 +36,7 @@ $ grep -oi 'centos' /etc/os-release
 
 This way it will print only the words
 
-
+If grep does not color the output 
 
 Analyze text using basic regular expression:
 

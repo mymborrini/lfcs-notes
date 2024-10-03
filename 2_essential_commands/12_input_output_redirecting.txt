@@ -184,3 +184,6 @@ $ grep -v '^#' /etc/login.defs | sort | column -t
 
 
 
+N.B 
+
+tar uses the path you selected in the Inoput of the [TARGET]. If you use absolute path all the files inside they have absolute path. If the task ask you to create a tar file UNDER a specific subdirectory. It mens you have to use the RELATIVE PATH and not the absolute one.

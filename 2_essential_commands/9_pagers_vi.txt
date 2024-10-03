@@ -35,4 +35,4 @@ The \c will make your search case insensitive
 
 YOu will go to line 23
 
-3 to cut a line of test you can use d
+To cut a line of test you can use d

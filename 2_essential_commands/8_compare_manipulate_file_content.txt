@@ -234,3 +234,8 @@ $ sdiff file1 file2
 
 As you can see the differences are marked with a pipe
 
+There is also a useful options
+
+diff --suppress-common-lines file1 file2
+
+This way it will display only lines that differ

@@ -4,7 +4,7 @@ Imagine having a website with thousands of files and directories; you don't want
 
 Generally you follow 3 steps:
 
-1 Packing everything, you create a backup.tar from your directtories 
+1 Packing everything, you create a backup.tar from your directories 
 2 Compress everything, you compress your backup.tar and create a backup.tar.gz
 3 Backup. You copy your files to a secure location to store it safely
 
