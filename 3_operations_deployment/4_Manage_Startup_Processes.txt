@@ -14,7 +14,7 @@ $ man systemd.service
 
 Let's look at a real example
 
-The server need to run the ssh deamon to let users connect to them form remote locations. There is a service unit that instucts the init system about how to start this.
+The server need to run the ssh deamon to let users connect to them form remote locations. There is a service unit that instructs the init system about how to start this.
 
 $ systemctl cat sshd.service
 
@@ -87,7 +87,7 @@ The process is simply the computer code loaded into memory and using the CPU whe
 1031 /usr/sbin/sshd -D-oCiphers=aes256=gcm@openssh.com,chacha20-p>
 
 this is the exact command used to start up the process.
-The logs are really useful to see iof the program starts up properly and if it encounters any error at the starting of the application
+The logs are really useful to see if the program starts up properly and if it encounters any error at the starting of the application
 
 
 To stop a service whe can simpy run the
@@ -108,7 +108,7 @@ $ systemctl reload sshd.service
 
 Reload simply reload the service.
 
-Not all the application supports reloading, but we have a command that try to reload the application and it case it does not have thisbpossibility it will restarts it. 
+Not all the application supports reloading, but we have a command that try to reload the application and it case it does not have thi bpossibility it will restarts it. 
 
 $ systemctl reload-or-restart sshd.service
 
@@ -154,6 +154,6 @@ So a masked service can't be enabled or started.
 
 It can be useful to get a list of all service units available on the system no matter if they are currently enabled, disabled, started or stopped
 
-$ syustemctl list-units --type service --all 
+$ systemctl list-units --type service --all 
 
 

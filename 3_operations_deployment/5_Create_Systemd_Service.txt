@@ -6,9 +6,9 @@ Also we want to start it when the system boots.
 
 In a nutshell, the service will manage the entire life cycle of an application according to instructions
 
-We won't build an application, we will build a simple bash script and we save it in /usr/local/bin which is the location for the application not installed by the package manager
+We won't build an application, we will build a simple bash script and we save it in /usr/local/bin which is the location for the application not installed by the package manager. Instead of /usr/bin/
 
-/usr/lib/myapp.sh
+/usr/local/bin/myapp.sh
 <<
 #!/bin/sh
 echo "MyApp Started" | systemd-cat -t MyApp -p info
@@ -34,7 +34,7 @@ RestartSec, configures the time to sleep before restarting a service
 
 Now we have to write the file, we need 3 sections: Unit,Service,Install
 
-It would be difficult to start from scratch. We can copy an existing service from the /lib/systemd/system. So we can get a good starting point by copying one of the file from this location
+It would be difficult to start from scratch. We can copy an existing service from the /lib/systemd/system In this folder there are the original scratch, not the symlink files. They are located instead in the folder /etc/systemd/system/ . So we can get a good starting point by copying one of the file from this location
 
 $ sudo cp /lib/systemd/system/ssh.service /etc/systemd/system/myapp.service
 

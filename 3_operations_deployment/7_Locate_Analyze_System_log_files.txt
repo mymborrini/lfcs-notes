@@ -1,6 +1,9 @@
 # LOCATE ANALYZE SYSTEM LOG FILES:
 
-The linux kernel and most programs that run on it generate status messages, error messages, warnings. And there can be tens of different programs generating all these messages all the time. Organizing this logs in file is the job of logging daemons. These are simply applications that collect organize and store logs. The most popular on Linux is rsyslog. 
+The linux kernel and most programs that run on it generate status messages, error messages, warnings. 
+And there can be tens of different programs generating all these messages all the time. 
+Organizing this logs in file is the job of logging daemons. These are simply applications that collect organize and store logs. 
+The most popular on Linux is rsyslog. 
 
 rsyslog = rocket-fast system for log processing and stores all logs in /var/log directory
 
@@ -12,7 +15,7 @@ N.B most of this files cannot be read by regular user. So it's better to make th
 
 In the folder we can search for ssh for example. 
 
-$ grep ssh
+$ grep -r ssh
 
 We see a file /var/log/secure
 
@@ -36,7 +39,8 @@ So it's not hard to navigate through the logs in /var/log... but it could be eas
 
 For example you want to see what your team did with the sudo command
 
-A programm called Journal Daemonm is a bit smarter at how it collects data then rsyslog and the Journal Control Command lets us analyze logs more efficiently.
+A programm called Journal Daemonm is a bit smarter at how it collects data then rsyslog and the Journal Control Command lets us analyze logs
+ more efficiently.
 So based on the example before we can check the command behind sudo.
 
 $ which sudo
@@ -59,7 +63,8 @@ Intersting part is that we can see that the ssh service is constantly running in
 
 
 
-To go to the end of the output once you type journalctl you can simply press the '>' charchter.  If you want to open tyhe journalctl at the end just type
+To go to the end of the output once you type journalctl you can simply press the '>' charchter.  If you want to open the journalctl 
+at the end just type
 
 $ journalctl -e 
 

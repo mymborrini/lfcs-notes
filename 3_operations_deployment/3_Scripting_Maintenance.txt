@@ -101,7 +101,7 @@ fi
  test -f /tmp/archive.tar.gz;
 We add the semicolon ";" at the end of the condition we want to verify.
 
-Every command returns 0 if everything goes well and a number different than 0 if it encountered some errors. if the command returns 0 everything oges well and it's true. If the command return a number larger then 0 some error occurs and is represented as false
+Every command returns 0 if everything goes well and a number different than 0 if it encountered some errors. if the command returns 0 everything goes well and it's true. If the command return a number larger then 0 some error occurs and is represented as false
 
 
 So we can write soemthing like this:

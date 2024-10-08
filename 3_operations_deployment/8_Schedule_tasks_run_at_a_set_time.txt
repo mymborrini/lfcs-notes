@@ -98,7 +98,9 @@ And that's all
 
 # ANACRON
 
-When using anacron we don't care which time the job is going to run, we only concern if the job run daily,monthly, or once every few days
+When using anacron we don't care which time the job is going to run, we only concern if the job run daily,monthly, or once every few days.
+While cron is configured to run at specific time, so if the computer is off at that time cron won't run the job for that day. Anacron can check 
+if the job has already been exectued that day, and if it's not, it can execute it. 
 
 $ sudo vim /etc/anacrontab
 
@@ -134,6 +136,7 @@ If it's corrrect we don't receive any message
 
 # AT
 
+At is created for command that only runs once. So not repetitive
 With AT command is much easier to schedule a job. We just have to specify when this task is going to run. For example 
 $ at 15:00
 at > /usr/bin/touch file_created_by_at

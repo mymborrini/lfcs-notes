@@ -100,7 +100,7 @@ $ pgrep -a syslog
 
 ## TOP
 
-ps only shows us the process running in the moment the command is launched. If we want to see the process at runtime we have to use another command. The 'top' command
+ps only shows us the process running in the moment the command is launched. If we want to see the process at runtime ( top will refresh every seconds unlike ps) we have to use another command. The 'top' command
 
 $ top
 [...information...]
@@ -134,13 +134,15 @@ $ ps lax
 
 The NI column show use nice values
 
-A regular user can only assign nice values between zero and 19. To assign lower values for a higher priority, we have to use root privileges
+A regular user can only assign nice values between zero and 19. To assign lower values for a higher priority, we have to use root privileges. Even if the value
+is above 0 but less than the actual one
 
 
 If you want to set a new value of niceness 
 
 $ sudo renice <nicenessvalue> <processId>
 
+niceness is pass through parent processes to child processes
 
 ## Signals
 
