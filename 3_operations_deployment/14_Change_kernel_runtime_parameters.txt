@@ -14,7 +14,6 @@ vm.admin_reserve_kbytes = 8192
 
 Everything start with net is some kind of network-related parameter memory-related stuff. 
 Everything start with vm is some kind of virtual memroy related parameter stuff. 
-Everything start with  is some kind of network-related parameter memory-related stuff. 
 
 
 To read a single parameter
@@ -51,7 +50,8 @@ vm.swappiness = 30
 ...
 
 
-Users often configure this parameter when they want to change what Linux does when it starts to run out of free memory. This value can be anything between 0 and 100. A high value will make the kernel use the disk as a sort of virtual memory a bit more often and sooner than really required. A low value will force it to try its best to avoid using using the disk in this way unless necessary. 
+Users often configure this parameter when they want to change what Linux does when it starts to run out of free memory. This value can be anything between 0 and 100. A high value will make the kernel use the disk as a sort of virtual memory a bit more often and sooner than really required. A low value will force it to try its best to avoid using using the disk 
+in this way unless necessary. 
 
 So let's say we want to change the value to 29 and make this change persistent.
 The first thing we should do is create a .conf file in the sysctl.d directory and we can give it any filename we want

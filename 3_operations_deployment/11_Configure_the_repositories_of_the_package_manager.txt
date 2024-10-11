@@ -41,14 +41,15 @@ Now download the key simply using the curl utility and save it to a file called 
 
 $ curl "https://download .docker.com/linux/ubuntu/gpg" -o docker.key
 
-Next we'll use the gpg command to transform this key from a text format to a binary format that our package manager can understand. This action is called Dear Moring in GPG terminology, so we'll do:
+Next we'll use the gpg command to transform this key from a text format to a binary format that our package manager can understand. 
+This action is called Dear Moring in GPG terminology, so we'll do:
 
 $ gpg --dearmor docker.key
 
 
 And so the dearmor key will be found in the docker.key.gpg file
 
-Now we'll move this into a directory belonging to our apt package manager, where it keeprs third party public keys to verify package signatures
+Now we'll move this into a directory belonging to our apt package manager, where it keeps third party public keys to verify package signatures
 
 $ sudo mv docker.key.gpg /etc/apt/keyrings/ or /usr/share/keyrings depending on your Debian Version 
 
@@ -81,7 +82,8 @@ $ sudo apt update
 
 PPA
 
-Another type of repositories that ubuntu lets you add are called ppas. Short for personal package archive.  These simplify thwe whole process of adding a third party repository and allow you to create your own third party repository
+Another type of repositories that ubuntu lets you add are called ppas. Short for personal package archive. 
+ These simplify thwe whole process of adding a third party repository and allow you to create your own third party repository
 
 
 To install one of them
@@ -105,3 +107,5 @@ To remove it
 $ sudo add-apt-repository --remove ppa:graphics-drivers/ppa
 
 
+In the most recent version of ubuntu we have Suites. A suite (noble, noble-updates, ...) represents a set of package that is  associated with a specific release of version of this distribution. They are used because ubuntu can check if some of the package in the release update (when you update a package). 
+This way it won't update the entire system. Consider that every releas has it's name so it' suites, for example noble is the relase name of ubuntu 24.04 

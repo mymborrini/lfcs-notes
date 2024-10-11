@@ -1,4 +1,4 @@
-Verify the integrity and the availability of resources
+ Verify the integrity and the availability of resources
 
 
 DISK
@@ -58,6 +58,10 @@ As before -h option makes it human-readable with MebiBytes,GigiBytes,TeriBytes a
 
 So we can see we have a total of 3.6Gi of memory and 1.0Gi is currently used.
 And of course the colum available ( 2.4Gi) show us how much memory we still have. So not the free colum
+
+If you need to see the output in MegaBytes for example, just type
+
+$ free --mega
 
 
 CPU (PROCESSOR)

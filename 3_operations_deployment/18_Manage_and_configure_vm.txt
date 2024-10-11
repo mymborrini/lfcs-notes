@@ -105,10 +105,14 @@ Then we set the memory allocation
 
 $ virsh setmem TestMachine 2048M --config
 
+The default size is in KB but as you can see you can specify different type by adding M or G
+
 Then shutdown and restart:
 
 $ virsh destroy TestMachine | $ virsh start TestMachine
 
 
+TO complettly remove a VM 
 
-
+$ virsh destroy VM1
+$ virsh undefine VM1
