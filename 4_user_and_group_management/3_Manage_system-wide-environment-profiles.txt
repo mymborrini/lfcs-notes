@@ -6,7 +6,7 @@ $ printenv === env
 # ...
 
 
-What we see here are environment variables. What are they used for? Generally they are sued by BASH, our current login shell. For example HISTSIZE manage the history size, so if it is set to 1000, it will not save more than 1000 commands in the history 
+What we see here are environment variables. What are they used for? Generally they are used by BASH, our current login shell. For example HISTSIZE manage the history size, so if it is set to 1000, it will not save more than 1000 commands in the history 
 
 HOME tells app where our home directory is
 
@@ -40,3 +40,7 @@ $ cat lastlogin ( a new file is created )
 
 
 As you can see in lastlogin.sh we didn't add a shebag. The system already knows that anythinhg found in /etc/prfile.d should be processed by our current shell. 
+
+If you need your changes just type
+
+$ sudo su - <current-username> and you will reboot into the system

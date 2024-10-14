@@ -121,7 +121,7 @@ For example if we want to Change John home Directory
 $ sudo usermod --home /home/otherdirectory --move-home John === $ sudo usermod -d /home/otherdirectry -m John
 
 
-The '--move-home' Option ensures that the old direcotry will be moved or renamed so that John can still. 
+The '--move-home' Option ensures that the old direcotry will be moved or renamed so that John can still. login
 
 To Change the username for John to Jane 
 
@@ -153,7 +153,7 @@ To remove an expireation date just use an empty string
 $ sudo usermod --expiredate "" jane
 
 
-We can also set an expiration date on the Password. This is not ehe same as Account expiration. Account expiration completly disable user Login. Password expiration Forces the user to Change Password the next time they log in 
+We can also set an expiration date on the Password. This is not the same as Account expiration. Account expiration completly disable user Login. Password expiration Forces the user to Change Password the next time they log in 
 
 chage = CHange AGE
 
@@ -172,7 +172,7 @@ $ sudo chage --maxdays 30 jane === sudo chage -M 30 jane
 
 If we want to be sure that the Password never expires we can set Max Days to -1
 
-$ sudo chage --maxdays -l jane
+$ sudo chage --maxdays -1 jane
 
 If we want to see the Passwords expiration
 
