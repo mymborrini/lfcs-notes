@@ -99,12 +99,15 @@ $ ip link
 2: enp0s3: ....
 3: enp0s8: ....
 
-This shows us out networking devices, also called network interfaces in Linux terminology. Some are real devices like Ethernet cards, wireless cards etc.
+This shows us out networking devices, also called network interfaces in Linux terminology. Some are real devices like Ethernet cards, 
+wireless cards etc.
 But other devices shown here can be virtual.
 
 1: lo:
-Is an interface generally shown at the top and is the loopback interface. Is a virtual interface. It is used by the system when it needs to connect to itself.
-For example when a program wants to connect to a database application running on the same system it goes to 127.0.0.1 through this loopback device
+Is an interface generally shown at the top and is the loopback interface. Is a virtual interface. It is used by the system when it needs
+ to connect to itself.
+For example when a program wants to connect to a database application running on the same system it goes to 127.0.0.1 
+through this loopback device
 
 2: enp0s3:
 Is an interface representing a real device, in this case an Ethernet card
@@ -122,7 +125,8 @@ This format is a little bit unreadable so to make it a little bit readable
 $ ip -c  addr
 
 So in this output we can see that generally ipv4 and ipv6 are configured for each interface.
-But notice the output for the third interface: enp0s8. We can see it's marked as being down. We can also see it doesn't have any IP address configured.
+But notice the output for the third interface: enp0s8. We can see it's marked as being down. We can also see it doesn't have any 
+IP address configured.
 To make the interface active or bring it up:
 
 $ sudo ip link set dev enp0s8 up
@@ -149,8 +153,9 @@ And to bring this network device down
 $ sudo ip link set dev enp0s8 down
 
 
-The trouble with setting IPs with the IP command is that these changes are temporary. To make this change permanently we use netplan. It's simply a tool
-whichread some configuration files and tell other devices to configure network accordingly. On ubuntu server, netplan sends instructions
+The trouble with setting IPs with the IP command is that these changes are temporary. To make this change permanently we use netplan. 
+It's simply a tool
+which read some configuration files and tell other devices to configure network accordingly. On ubuntu server, netplan sends instructions
 to Systemd's network daemon called systemd-networkd.
 
 To see the actual configuration
@@ -162,10 +167,11 @@ network:
             dhcp4: true
 
 
-To write dhcp4 true it makes this device ask for network settings from a DHCP server. The '4' refers to IPv'4' settings. A dhcp server is often used to auto
-configure IPs for the devices on a network.
+To write dhcp4 true it makes this device ask for network settings from a DHCP server. The '4' refers to IPv'4' settings. A dhcp server 
+is often used to autoconfigure IPs for the devices on a network.
 
-Netplan configuration file is stored in /etx/netplan directory. A file already exist with the configuration we saw before when we type 'netplan get'
+Netplan configuration file is stored in /etx/netplan directory. 
+A file already exist with the configuration we saw before when we type 'netplan get'
 
 Now let's create a new file dedicated to a different ethernet device on this system
 
@@ -239,11 +245,12 @@ We can add nameservers.addresses to set specific DNS names for domain resolution
 We can specify routes as well.
 The first one tells our machine that when it wants to reach any IP in the 192.168.0.0 network it can contact the server at 10.0.0.100
 The server acts as middleman, passing data from one network to the other.
-The other route specifies that if the computer can't figure out what route to use from everything it  has available, it can fall back to this default route.
+The other route specifies that if the computer can't figure out what route to use from everything it  has available, it can fall back 
+to this default route.
 10.0.0.1 is often called a gateway since it's a door to an external world from this network to any other network.
 
-For example, when we use the internet at home our router is ususally use the gateway because it helps us send data from our home network out to any other
-network in the world.
+For example, when we use the internet at home our router is ususally use the gateway because it helps us send data from our home network 
+out to any other network in the world.
 
 Now apply our new configuration
 
@@ -317,7 +324,8 @@ We have an additional documentation under
 
 /usr/share/doc
 
-This includes additional documentation for various software packlages, and in the case of netplan we can get access to a few example configuration file.
+This includes additional documentation for various software packlages, and in the case of netplan we can get access to a few example 
+configuration file.
 
 In this case
 
@@ -395,3 +403,5 @@ In the end netstat use almost the same options of ss
 $ sudo netstat -ltunp
 
 This command will do the same as ss -ltunp
+
+In this case you can see for incoming connections since it's marked as LISTEN

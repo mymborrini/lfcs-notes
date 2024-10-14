@@ -281,7 +281,8 @@ To              Action              From
 
 
 We can see we have two rules, once for ipv4 and the other for IPv6.
-We can see the default policy as well, for incoming data everything is denied exept for what we defined belowed. For data that is outgoing everything is permitted
+We can see the default policy as well, for incoming data everything is denied exept for what we defined belowed. 
+For data that is outgoing everything is permitted
 Routed packets are disallowed for now, this will change we we start using port redirection and NAT.
 
 THe next step is define the rules in a better way
@@ -392,7 +393,8 @@ To                      Action              From
 
 When we insert a rule like this everything else is pushed down, so rule number 1 becomes rule number 2 and so on.
 
-Like we said before a machine can have multiple network interface, once for connecting to the internet and another one for connecting to an internal network
+Like we said before a machine can have multiple network interface, once for connecting to the internet and another one for connecting 
+to an internal network
 for example...
 
 We have this situation
