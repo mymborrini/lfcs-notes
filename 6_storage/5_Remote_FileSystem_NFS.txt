@@ -1,4 +1,4 @@
-Use Remote Filesystem: NTFS
+Use Remote Filesystem: NFS
 
 Sometimes we need data that resides in a different system from the one we are currently logged into.
 There are multiple protocol that allow us to access remote file system.
@@ -29,7 +29,8 @@ $ sudo vim /etc/exports
 
 
 These show us a few examples and it teaches us how to define our shares.
-/srv/homes => The path in the directory we want to share. For example in our case /nfs/disk1/backups. We can also point to a subdirectory belonging to our filesystem
+/srv/homes => The path in the directory we want to share. For example in our case /nfs/disk1/backups. We can also point to a subdirectory belonging 
+to our filesystem
 
 hostname1(rw,sync,no_subtree_check) => Next we need to choose who or what can access the share, so which nfs client should be used our filesystem.
             For example "example.com" or "server1.example.com". Instead of hostname we can use the IP address 10.0.0.9. There is a third options, if we

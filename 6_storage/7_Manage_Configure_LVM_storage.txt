@@ -141,7 +141,7 @@ my_volume    2    1      0      wz--n-    9.99g       7.99g
 ubunut-vg    1    1      0      wz--n-  <43.00g      21.50g
 
 
-Now let's create a second volume group and we're going to name this partition2 with a size of 6G
+Now let's create a second logical volume and we're going to name this partition2 with a size of 6G
 
 $ sudo lvcreate --size 6G --name partition2 my_volume
 
