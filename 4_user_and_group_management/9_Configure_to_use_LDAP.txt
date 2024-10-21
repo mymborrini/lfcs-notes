@@ -7,6 +7,176 @@ $ cat /etc/passwd
 user1:.... a lot of imformation
 
 
+The problem with this is that generally we have to synchronize hundreds of servers. And even with tools like Ansible it could be difficult
+to sync all the User Managements of these servers. Especially if we have to modify users, adding new groups etc...
+
+The response is add an LDAP server into the mix. 
+LDAP stays for Lightweight directory access Protocol 
+
+We can configure our Linux systems to use an LDAP server as an additional source of information for users and groups account. 
+
+
+Example:
+
+$node1 id john
+id: `john`: no such  user
+
+$node1 id jane
+id: `jane`: no such  user
+
+An LDAP server could be not our responsability. It could be running on Microsoft Azure or on a Windows Server. In that case, we'll just
+need to set up the clients to use Ldap, but not the Ldap server itself. 
+
+To avoid having to set up an LDAP server, which is a complicated process, let's just get our hands on a pre-configured one. We can use 
+LXC which is short for Linux Containers. 
+
+
+Now first we'll hjave to initialize LXD, which is the hypervisor that will monitor LXC containers. 
+
+$node1 lxd init
+
+(we can use the default values)
+
+Now in this lesson we have an ldap-server.tar.xz
+
+$ lxc import ldap-server.tar.xz 
+
+We have to wait a bit even if it completes the 100%.
+After that
+
+$ lxc list
+
+NAME            STATE       TYPE            SNAPSHOTS
+ldap-server     STOPPED     CONTAINER       0
+
+$ lxc start ldap-server
+
+Now we have an ldap server available. If you want to experiment with it, every password is set to the word `password`.
+
+
+$ lxc list
+
+NAME            IPv4                           IPv6            STATE       TYPE            SNAPSHOTS
+ldap-server     10.0.142.218 (eth0)            ...             RUNNING     CONTAINER       0
+
+
+
+Now let's focus on how do we configure our Linux system to use group and user accounts that are defined on this LDAP server?
+
+
+$ sudo apt update && sudo apt install libnss-ldapd 
+
+This package that ends with the d libnss-ldapd has improvements
+
+---
+Configuration Step1:
+NSS is short for name server swith and it's just a convenient way for Linux to get data about the various things for various sources like
+user groups password etc...
+
+
+Now we have to configure nslcd in order  to set the URI of our ldap server. nslcd stays fro name service local daemon, a component
+responsible for retrieving data from the LDAP server. That's why here we need to type in the IP address of our Ldap server.
+
+The ip address of our LDAP server is the one we see before 10.0.142.218 expect we have to add a forward slash so with this in the end
+
+ldap://10.0.142.218/
+
+---
+Configuration Step2:
+The distinguished name of the LDAP search base. Ldap can store information for a lot of deparments in our organizaition, so things are separated in 
+in a tree like structure. So now we are telllikng our nslcd whihc segment of this tree is sotring ionformation about our Linux users and
+groups.
+
+For example: dc=kodekloud, dc=com
+
+dc stands for domain component
+
+If we have a subdomain and we want to store data in it, for example users.kodekloud.com
+
+We have something like:
+dc=users, dc=kodekloud, dc=com
+
+For now we just need: dc=kodekloud, dc=com
+
+---
+Configuration Step3:
+Configure the ldap datasource, you can modify the /etc/nsswitch.conf file. We finally tell our linux system where it can find additional
+data for user and froup accounts
+
+passwd => referes to user data
+group => referes to group data
+shadow => refers to password
+...
+There are a lot of more options but now we are only interested in users and groups. 
+
+
+Now we can look at the /etc/nsswitch.conf
+
+ passwd:        files   systemd     ldap
+ group:         files   systemd     ldap
+ shadow:        files   systemd     ldap
+ gshadow:       files   systemd     ldap
+
+
+Which means that nsswitch will look in three places, some users may be configured in /etc/passwd file, some others may be configured 
+in systemd and finally valid users can be configured in the ldap server. 
+
+This just teels the daemon where to pull data from. It's configuration of the ldap server is
+
+$ sudo cat /etc/nslcd.conf
+
+...
+# The location at which the LDAP server(s) should be reachable
+uri ldap://10.0.142.218/
+
+# The search base that will be used for all queries
+base dc=kodekloud,dc=com
+...
+
+
+This is the file we can edit if we want to change something or fine tune settings. 
+
+On our predefined LDAP server we add both of john and jane account
+
+
+$node1 id john
+uid=1000(john) gid=10000(ldapusers) groups10000(ldapusers)
+
+$node1 id jane
+uid=1001(jane) gid=10000(ldapusers) groups10000(ldapusers)
+
+
+To see all the users both locally and the ones defined in the ldap server
+$ getent passwd
+
+Or if we want to filter out all the users from the ldap service
+
+$ getent passwd --service ldap
+
+To get group entries
+
+$ getent group --service ldap
+
+
+Now we should have a user called john. But when we look at the /home directory 
+
+$ ls /home
+
+we didn't see the john directory.
+
+We can use pluggable authentication module PAM. Every time a user logged in these modules are automatically triggered.
+
+$ sudo pam-auth-update 
+
+We check the box 'Create home directory on login'
+
+Now we just need to login as john
+
+$ sudo login john
+
+And his home directory is automatically created 
+
+
 A possible task:
 
 The node01 was configured to use LDAP entries from a certain server. However, some configuration options are wrong. 
