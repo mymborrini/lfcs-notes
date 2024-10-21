@@ -274,6 +274,10 @@ $ sudo vim /etc/fstab
 
 So the second line will be the one we write.
 
+Once you complete you can apply it immesdiatly (useful in exam so you can also test it)
+
+$ sudo mount -a
+
 If we don't want to reboot the system
 
 $ sudo systemctl daemon-reload

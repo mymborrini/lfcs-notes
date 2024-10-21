@@ -224,5 +224,4 @@ Run sudo lsof -p <PID> to list the open files by the process.
 Run sudo lsof -p <PID> | awk '{print $9}' | while read file; do df $file; done to get the device details.
 Find the actual partition used by running the pvs command and store the actual device name in /opt/devname.txt.
 Run the command below to get the PID of the process with high kB_read/s:
-
-   sudo pidstat -d 1
+sudo pidstat -d 1

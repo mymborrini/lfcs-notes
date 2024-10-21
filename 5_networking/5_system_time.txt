@@ -56,3 +56,7 @@ $ timedatectl show-timesync
 
 Or:
 $ timedatectl timesync-status
+
+To set the ntp pools servers: in /etc/systemd/timesyncd.conf
+
+NTP=0.asia.pool.ntp.org 1.asia.pool.ntp.org 2.asia.pool.ntp.org 3.asia.pool.ntp.org

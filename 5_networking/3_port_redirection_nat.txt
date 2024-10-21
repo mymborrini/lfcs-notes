@@ -164,7 +164,7 @@ purpouse. A table can reference multiple chain, but those chains will only be tr
 
 So now take a look at the command itself.
 
-$ sudo iptables -t nat -A PREROUTING -i enp1s0 -s 10.0.0.0/24 -p tcp -dport 8080 -j DNAT --to-destination 192.168.0.5:80
+$ sudo iptables -t nat -A PREROUTING -i enp1s0 -s 10.0.0.0/24 -p tcp --dport 8080 -j DNAT --to-destination 192.168.0.5:80
 
 -t nat        =>           we add this rule to the nat table. When a port is redirected NAT is used to change the initial destination IP and port to a different IP. So whenever
                          we neet nat, we need to add our rule to the nat table
@@ -175,7 +175,7 @@ $ sudo iptables -t nat -A PREROUTING -i enp1s0 -s 10.0.0.0/24 -p tcp -dport 8080
 -s 10.0.0.0/24 =>        The source ip, we apply this rule only fi the source IP is in the CIDR range.
 -p tcp          =>      Is mandatory to use the -p option. Without using it we get an error saying something like dport has an unknown option. You can copy paste the command another time
                         if you need for udp.
--dport 8080    => We set the destination port to 8080
+--dport 8080    => We set the destination port to 8080
 -j DNAT         =>      This is where the magic happend, -j tells our rule to jump this network packet to a so called target In iptables terminology. You can think of it as sending this network
                         packet to a mini program or a mini module of sorts. In this case it's sent to an extension called Nat, short for destination Nat.
                         This is the target extension that alters the packet to be redirected to a new IP in port

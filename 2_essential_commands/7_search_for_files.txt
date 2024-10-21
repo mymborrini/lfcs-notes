@@ -203,7 +203,8 @@ $ find ... | wc -l
 Which is wc (word count) -l (line)
 
 
-
+Useful commands to delete all folder which are empty.
+find /home/mary/ -type d -empty -delete
 
 
 

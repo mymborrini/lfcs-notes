@@ -5,3 +5,15 @@ Linux keeps user account and information stored locally so for example:
 $ cat /etc/passwd
 
 user1:.... a lot of imformation
+
+
+A possible task:
+
+The node01 was configured to use LDAP entries from a certain server. However, some configuration options are wrong. 
+Edit the correct configuration files and fix the following mistakes:
+
+Our name service local daemon is configured to look for an LDAP server at the wrong IP address (currently 10.9.9.8).
+ Fix this and configure the correct IP which is: 192.168.121.167. Make sure your changes become active after you edit the configuration file.
+
+Our system is currently configured to get group data and password data from the LDAP server but not user data. 
+Configure it to get user data as well.
