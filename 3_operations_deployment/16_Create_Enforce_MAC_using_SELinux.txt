@@ -1,14 +1,13 @@
 Create and enforce MAC using SELinux
 
-How we can enforce mandatory access control (MAC) with the help of Linux security.  Red Hat and CentOs operating systems have SELinux enabled by default but Ubuntu has a different security module called apparmor,
-which is used by default. 
+How we can enforce mandatory access control (MAC) with the help of Linux security.  Red Hat and CentOs operating systems have SELinux enabled by default
+but Ubuntu has a different security module called apparmor, which is used by default. 
 
 So what if we want to use SELinux on Ubuntu?
 Since apparmor is enabled by default
 
 $ sudo systemctl stop apparmor service
 $ sudo systemctl disable apparmor service
-
 
 Next we have to installed two packages 
 
@@ -21,7 +20,10 @@ To check if SELinux is enabled on our system we can run
 $ sestatus
 # SELinux status: 	disabled
 
-As expected, since we just installed modules is disabled in our case. First, the boot loader needs to be configured to tell the Linux kernel to load the security module. Also every file on the system needs to be properly labeled because SELinux uses labels for everything to decide what a certain object is allowed to do. 
+As expected, since we just installed modules is disabled in our case. First, the boot loader needs to be configured to tell the Linux kernel to load 
+the security module. 
+Also every file on the system needs to be properly labeled because SELinux uses labels 
+for everything to decide what a certain object is allowed to do. 
 
 $ ls -Z
 
@@ -30,6 +32,226 @@ $ ls -Z
 ? dev
 ...
 
-The question marks appear instead of proper security labels. Ubuntu has a utility that can go through all the steps necessary to enable SELinux
+The question marks appear instead of proper security labels. 
+Ubuntu has a utility that can go through all the steps necessary to enable SELinux and the file system
 
-Continue....
+$ sudo selinux-activate
+
+Now if we check
+
+$ cat /etc/default/grub
+..
+GRUB_CMDLINE_LINUX=" security=selinux"
+..
+
+This line tell the bootloader to pass an argument to the kernel linux which will load SELinux
+
+If we now type 
+
+$ ls -Z /
+
+.autorelabel
+
+This hidden files extract SELinux to relabel every file with a property security label when we reboot 
+
+One thing to understand is that selinux is related to the filesystem.
+
+Now we can reboot and it will take a while depending on how many files there are in the filesystem.
+
+$ sudo reboot
+
+This first time we have to wait for 30 seconds as a security measure so we can come back if anything goes wrong. From the next time, linux will boot
+normally. 
+
+If now we check the status of selinux
+
+ls -Z /
+
+We see a different output. Every file or directory has labels. 
+
+$ sestatus 
+# SELinux status: 	enabled
+# Current Mode: permissive
+
+
+Now it's enable but in permessive mode.
+
+When Selinux is enabled in permissive mode, it will not apply security rules but it will simply register any action and any possible violation in a 
+audit control .
+
+Thanks to auditd utility we installed before we can see all this register. 
+
+$ sudo audit2why --all | less 
+
+If we look through less to ssh, we see that all the ssh actions are marked as AVC. This means that Selinux will normally denied all this actions by the
+current security policy. Or better a process with a label sshd_t has made something that selinux won't allow it to do. 
+
+Now which process is enable with sshd_t
+
+$ ps -aZ | grep 
+system_u:system_r:sshd_t:s0
+
+If we now check the main file process:
+
+$ ls -Z /usr/sbin/sshd
+system_u:object_r:sshd_exec_t:s0 /usr/sbin/sshd
+
+
+So because  a file is labeled with sshd_exec_t Selinux knows whihc rules needs to be applied for the process that file generates.
+
+Since we want to enable ssh we have to tell Selinux to enable it.
+
+$ sudo audit2why --all -M mymodule
+
+--all tell audit2why to inspect all the events registered and -M tells it to generate a so called module. This is simply a file that we can load in Selinux 
+to create a security policy to allow  that would allow all the previously logged actions. MyModule is simply a name we choose for our security package. 
+
+To load this module:
+
+$ semodule -i mymodule.pp
+
+-i stands for install
+
+Now we can enable Selinux 
+
+$ sudo setenforce 1
+
+COnsider that setenforce will put selinux in enforce mode only until the next reboot. 
+
+To put in persistent enforcing mode, we can edit this file: 
+
+/etc/selinux/config
+
+SELINUX=enforcing
+
+
+Turning back to our module it will generate 2 files: mymodule.pp (which is a binary file) and mymodule.te which is a text file. 
+
+$ less mymodule.te
+module mymodule 1.0;
+
+require {
+    type sshd_t;
+    ...
+}
+...
+
+Is generally a good idea to have a policy file for every object we want to secure.
+
+Let's see a line of sshd_t and try to understand what it means
+
+allow sshd_t var_log_t:file { append create getattr ioctl open };
+
+We mention Selinux confines process into security bubble call domain. So in this line we are telling Selinux that process with sshd_t label should be 
+able to do certain action against file with label called var_log_t. So in this  case it can edit create and open this kind of files. 
+
+Now let's see it in practice 
+
+ssh logs into the /var/log/auth.log file
+
+$ ls -Z /var/log/auth.log file 
+
+system_u:object_r:var_log_t:s0 /var/log/auth.log 
+
+As you can see ssh process needs to write down into this kind of files.
+
+So this is an example where we limit which files a process should be able to access. 
+
+As we already see, to change the security context of a file we can use chcon
+
+$ chcon -u (for user), -r (for role), -t (for type) <value> <filename>
+
+With chcon we can use only labels predefined in our securirty policy. 
+
+To see that we can use
+
+$ seinfo -u (to see the valid user labels)
+$ seinfo -r (to see the valid role labels)
+$ seinfo -t (to see the valid type labels)
+
+We can tell chcon to use all the labels from a good file to a correct a bad file.
+
+$ chcon --reference=/var/log/dmesg.log /var/log/auth.log.
+
+
+But what if we create new files or directories?
+
+$ touch file1
+$ ls -Z file1
+unconfined_u:object_r:var_t:s0 file1
+
+
+Which labels should I put here? Selinux has a database that can suggest you which lable a file should have base don the directory it is placed. 
+This labels in the database are the one used by restorecon, the commnad used to restore the default labels 
+
+So in this case you can use restorecon to the file just created:
+
+$ restorecon file1
+unconfined_u:object_r:httpd_sys_content_t:s0 file1
+
+In this case selinux choose httpd_sys_content_t because the file was created in the /var/www/ folder.
+
+As we see before restorecon by default only replace the type labels, if you can user or role you have to put the -F (force) option
+
+$ restorecon -F file1
+
+
+If for some reason all the labels are restored and we set a custom labels, the custom labels will be overriden. 
+If we don't want this we have to use another comamnd:
+
+$ sudo semanage fcontext --add --type var_log_t file1
+
+This way even if we use restorecon the label will be var_log_t for file1
+
+This will simply update the database but it won't change the label. So we have to follow this command with this:
+
+$ restorecon file1
+
+For everything we can check the file context in the same way we can see for selinux users
+
+
+$ semanage fcontext --list
+...
+...
+
+Here we can even find the path we want to do if we want to change the default label for an entire folder, which is something like this:
+We use regular expression for directories and subdirectories
+
+$ semanage fcontext --add --type nfs_t "/nfs/share(/.*)?"
+
+This way all files and subdirectories inside /nfs/share will have this default label. Note that you have to use quotes. 
+
+Selinux offers shortcut to allow or deny entire group of actions. Selinux calls this boolean.
+
+We can see a list of boolean with this command:
+
+$ semanage booleans --list
+
+We can see for example that
+
+virt_use_nfs (off,off) Determine wheter confined virtual guest can use nfs filesystem 
+
+In this can virt_use_nfs is disabled (the first off) and it's default value is disbaled (the second off)
+
+To enable it
+
+$ sudo sesebool virt_use_nfs 1
+
+To check the value
+
+$ getbool virt_use_nfs 
+virt_use_nfs --> on
+
+
+Another thing with Selinux is port binding for incoming connections, which process can use which ports. 
+
+$ sudo semanage port --list
+...
+ssh_port_t tcp 22 
+...
+
+If we want ssh to listen on different port 
+
+$ sudo semanage port --add --type ssh_port_t --proto tcp 2222
+
+If we want to delete instead of extend the database we can simply do (like on ufw) change --add to --delete with all the rest equals
