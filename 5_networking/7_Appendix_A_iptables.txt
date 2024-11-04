@@ -1,0 +1,220 @@
+IPTABLES
+
+
+BASIC:
+iptables is the main interface into the linux kernel netfilter.
+iptables is a set of rules contained within chains which are contained within tables.
+
+There are 3 default table: raw, nat, filter.
+
+Let's begin with the most common used the filter table
+
+$ iptables -t filter -L 
+Chain INPUT (policy ACCEPT)
+target      prot opt source         destination
+
+Chain FORWARD (policy ACCEPT)
+target      prot opt source         destination
+
+Chain OUTPUT (policy ACCEPT)
+target      prot opt source         destination
+
+Without any rules all traffic will be allowed. There are 3 default chain in the filter table, these are: INPUT, FORWARD, OUTPUT
+
+The INPUT contains rules that filter traffic coming into the linux box
+The OUTPUT contains rules that filter traffic leaving from the linux box 
+The FORWARD contains rules for traffic being routed through the Linux box 
+
+By default the policy is ACCEPT. Like we sai before, without any rules all traffic will be allowd. In general the policy means
+what happens if no rule matches in this chain.
+
+Other policy are the DROP and the REJECT. The DROP policy causes any traffic that does not match a rule to be dropped. The reject means that
+it will accept the traffic, but it will send an ICMP rejection back to the sender.
+
+Some examples:
+Add a rule that allow all the traffic and then change the default policy to DROP.
+
+$ iptables -t filter -A INPUT -j ACCEPT
+$ iptables -t filter -A OUTPUT -j ACCEPT
+
+$ iptables -t filter -P INPUT DROP
+$ iptables -t filter -P OUTPUT DROP 
+
+$ iptables -t filter -L 
+Chain INPUT (policy DROP)
+target      prot opt source         destination
+ACCEPT      all  --  anywhere       anywhere
+
+Chain FORWARD (policy DROP)
+target      prot opt source         destination
+
+Chain OUTPUT (policy DROP)
+target      prot opt source         destination
+ACCEPT      all  --  anywhere       anywhere
+
+
+
+
+CONNECTION TRACKING:
+
+Now the situation is like the one before so it's like not having any firewall at all. So we'll start by allowing loopback traffic
+l0 is the loopback interface
+
+$ iptables -t filter -A INPUT -j ACCEPT -i l0
+$ iptables -t filter -A OUTPUT -j ACCEPT -o l0
+
+Now to see these rules we have to make our list a little bit more verbose:
+
+$ iptables -L -n -v --line-numbers
+Chain INPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1           1342  89068  ACCEPT     all   --   *        *        0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   l0       *        0.0.0.0/0   0.0.0.0/0
+
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain OUTPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1            379  42152  ACCEPT     all   --   *        *         0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *        l0        0.0.0.0/0   0.0.0.0/0
+
+For our connection we need to use connection tracking state. So let's see how to add connection tracking rules. 
+
+$ iptables -t filter -A INPUT -j ACCEPT -m conntrack --ctstate ESTRABLISHED,RELATED 
+$ iptables -t filter -A OUTPUT -j ACCEPT -m conntrack --ctstate ESTRABLISHED,RELATED 
+
+You can allow or deny access based on the following connection states:
+NEW — A packet requesting a new connection, such as an HTTP request.
+ESTABLISHED — A packet that is part of an existing connection.
+RELATED — A packet that is requesting a new connection but is part of an existing connection. For example, FTP uses port 21 to establish a connection, but data is transferred on a different port (typically port 20).
+INVALID — A packet that is not part of any connections in the connection tracking table.
+You can use the stateful functionality of iptables connection tracking with any network protocol, even if the protocol itself is stateless (such as UDP)
+
+
+$ iptables -L -n -v --line-numbers
+Chain INPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1           1342  89068  ACCEPT     all   --   *        *        0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   l0       *        0.0.0.0/0   0.0.0.0/0
+3              0      0  ACCEPT     all   --   *       *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain OUTPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1            379  42152  ACCEPT     all   --   *        *         0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *        l0        0.0.0.0/0   0.0.0.0/0
+3              0      0  ACCEPT     all   --   *       *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+
+Now everything is tracked and we can remove those default rules: (1) is the rule number
+$ iptables -t filter -D INPUT 1
+$ iptables -t filter -D OUTPUT 1
+
+$ iptables -L -n -v --line-numbers
+Chain INPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   l0       *        0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *       *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain OUTPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   *        l0        0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *       *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+
+
+
+TRAFFIC BASIC:
+
+First define a useful alias
+$ alias ipt='iptables -v -n -L --line-numbers'
+
+Right now we allow only loopback traffic and ESTRABLISHED traffic. The machine is pretty locked down from a network prospective,
+Let's start by allowing ping to this machine.
+
+--icmp-type 8  is the echo type (ping pong)
+
+$ iptables -t filter -A INPUT -j ACCEPT -p icmp --icmp-type 8 
+
+Then ssh traffic
+
+$ iptables -t filter -A INPUT -j ACCEPT -p tcp --dport 22
+
+Now for OUTPUT traffic the same thing but we add http,https,dns, ntp (123) For dns remember to add udp as well
+
+$ iptables -t filter -A OUTPUT -p icmp --icmp-type 8
+$ iptables -t filter -A OUTPUT -p tcp --dport 22
+$ iptables -t filter -A OUTPUT -p tcp --dport 80 
+$ iptables -t filter -A OUTPUT -p tcp --dport 443
+$ iptables -t filter -A OUTPUT -p tcp --dport 53
+$ iptables -t filter -A OUTPUT -p udp --dport 53
+$ iptables -t filter -A OUTPUT -p udp --dport 123
+
+$ ipt
+Chain INPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   l0       *         0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *        *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+3              0      0  ACCEPT     icmp   --  *        *         0.0.0.0/0   0.0.0.0/0      ivmptype 8
+4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 22
+
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain OUTPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   *        l0        0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *        *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+3              0      0  ACCEPT     icmp   --  *        *         0.0.0.0/0   0.0.0.0/0      ivmptype 8
+4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 22
+4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 80
+4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 443
+4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 53
+4              0      0  ACCEPT     udp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 53
+4              0      0  ACCEPT     udp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 123
+
+
+IPTABLES PERSISTENT:
+
+Firstable we would like to add comment to our rule to make them more readable. To do this is enough to add the comment module:
+So firstable we delete the rule and then we add it again with the comment:
+
+$ iptables -t filter -D INPUT 4
+$ iptables -t filter -A INPUT -j ACCEPT -p tcp --dport 22 -m comment --comment 'allow ssh from all'
+
+$ ipt
+Chain INPUT (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   l0       *         0.0.0.0/0   0.0.0.0/0
+2              0      0  ACCEPT     all   --   *        *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
+3              0      0  ACCEPT     icmp   --  *        *         0.0.0.0/0   0.0.0.0/0      ivmptype 8
+4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 22 /* allow ssh from all */
+...
+
+Now let's see how to make these rules persistent, before this we have to check if we are using debian or redhat
+
+In case of Debian:
+$ apt install iptables-persistent 
+
+Now we want to save the iptables and of course the output 
+
+$ sudo sh -c "iptables-save > /etc/iptables/rules.v4"
+$ sudo sh -c "ip6tables-save > /etc/iptables/rules.v6"
+
+
+In case of Redhat:
+$ systemctl stop firewalld 
+$ systemctl disable firewalld 
+
+$ yum install iptables-services
+$ systemctl enable iptables 
+
+And now we can save them, but the command is a little bit different
+
+$ sudo sh -c "iptables-save > /etc/sysconfig/iptables"
+
+NAT MASQUERADEING
