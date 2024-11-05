@@ -171,11 +171,11 @@ num         pkts  bytes  target     prot  opt  in       out      source      des
 2              0      0  ACCEPT     all   --   *        *         0.0.0.0/0   0.0.0.0/0      ctstate RELATED,ESTRABLISHED
 3              0      0  ACCEPT     icmp   --  *        *         0.0.0.0/0   0.0.0.0/0      ivmptype 8
 4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 22
-4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 80
-4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 443
-4              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 53
-4              0      0  ACCEPT     udp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 53
-4              0      0  ACCEPT     udp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 123
+5              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 80
+6              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 443
+7              0      0  ACCEPT     tcp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 53
+8              0      0  ACCEPT     udp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 53
+9              0      0  ACCEPT     udp   --   *        *         0.0.0.0/0   0.0.0.0/0      tcp dpt 123
 
 
 IPTABLES PERSISTENT:
@@ -218,3 +218,121 @@ And now we can save them, but the command is a little bit different
 $ sudo sh -c "iptables-save > /etc/sysconfig/iptables"
 
 NAT MASQUERADEING
+
+Like we said before the FORWARD chain is for traffic that has passed through the firewall. So the first thing to do it to create an
+established traffic rule to the forward chain. 
+
+$ iptables -t filter -A FORWARD -m comment --comment "established traffic" -j ACCEPT -m conntrack --cstate ESTABLISHED,RELATED
+
+$ipt
+...
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   *        *        0.0.0.0/0   0.0.0.0/0         ctstate RELATED,ESTRABLISHED
+...
+
+This is necessary because we set default policy to DROP
+
+Now we have to accept the traffic 
+
+$ iptables -A FORWARD -j ACCEPT -i lan -o wan 
+
+$ipt
+...
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   *        *        0.0.0.0/0   0.0.0.0/0         ctstate RELATED,ESTRABLISHED
+2              0      0  ACCEPT     all   --   lan      wan        0.0.0.0/0   0.0.0.0/0
+...
+
+So now we have a rule that allows us to forward traffic from the lan interface to the wan interface. Again if the default policy of chain FOWARD is
+ACCEPT there won't be necessary to use this.
+
+Now we need to set up a network address translation to change the internal lan IP to our public wan IP otherwise we won't be able to communicate
+on the internet 
+
+$ ipt -t nat
+Chain PREROUTING (policy ACCEPT)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain INPUT (policy ACCEPT)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain OUTPUT (policy ACCEPT)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+Chain POSTROUTING (policy ACCEPT)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+
+The PREROUTING chain performs the NAT before the packet routing decisions made. This is usually to reroute packets that are pointed to
+an IP owned by the firewall to a different IP being routed by the firewall. 
+
+The POSTROUTING chain contains rules that perform NAT after the routing decisions is made. This is generally used to change the IP address
+that a packet is coming from 
+
+$ iptables -t nat -A POSTROUTING -o wan -j MASQUERADE -m comment --comment "masquerade lan->wan"
+
+$ ipt -t nat
+...
+Chain POSTROUTING (policy ACCEPT)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  MASQUERADE all   --   *        wan        0.0.0.0/0   0.0.0.0/0
+
+Another thing we need to do is to enable ip_forward on our systemctl
+$ sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward"
+
+So this is another way to do translation with ip tables 
+
+
+PORT ADDRESS TRANSLATION 
+
+Port address translation allows you to reach a service running on a machine behind the firewall by acting through the 
+firewall.
+
+The first we are going to need is a destination nat or DNAT rule in the prerouting chain, this is going to redirect our packets before 
+a routing decisions is made. 
+(22) is the port we are going to use on the firewall to forward the packets
+192.168.5.201 is the ip on the firewall that you want to translate
+172.16.1.102 is the internal ip that you want to reach
+$ iptables -t nat -A PREROUTING -p tcp --dport 22 -m comment --comment "ssh PAT -> CentOS" -d 192.168.5.201 -j DNAT 
+--to-destination 172.16.1.102
+
+$ ipt -t nat
+Chain PREROUTING (policy ACCEPT)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  DNAT       all   --   *        wan      0.0.0.0/0   192.168.5.201   tcp dpt:22 /* ssh PAT -> CentOS */ to:172.16.1.102
+
+Now we have to return to the filter table as always because we need to allow the traffic. We need to add a rule that allow traffic 
+into the CentOS machine. Because there is no port specified is gonna be the one specified in the dport 
+
+$ iptables -t filter -A FORWARD -p tcp --dport 22 -d 172.16.1.102 -j ACCEPT  -m comment --comment "ssh into CentOS"
+
+$ ipt -t filter
+...
+Chain FORWARD (policy DROP)
+num         pkts  bytes  target     prot  opt  in       out      source      destination
+1              0      0  ACCEPT     all   --   *        *        0.0.0.0/0   0.0.0.0/0         ctstate RELATED,ESTRABLISHED
+2              0      0  ACCEPT     all   --   lan      wan      0.0.0.0/0   0.0.0.0/0
+3              0      0  ACCEPT     tcp   --   *        *        0.0.0.0/0   172.16.1.102      tcp dpt:22 /* ssh into CentOS */
+...
+
+
+RATE LIMITING (recent module)
+
+This could be really useful for example to block brute-force logon attempts to your ssh server.
+RECENT module allows you to track and set up a lit of IPs over a time period then you can check that list and if you've seen that particular
+IP too many times you can take action. 
+
+For example we will block a connection when you see the same IP more than 5 times in 60 seconds. 
+
+$ iptables -t filter -I INPUT 4 -p tcp --dport 22 -m conntrack --ctstate NEW -m recent --name ssh-list --set -m comment --comment "track new ssh attempts"
+-I <chain> <line-number> means insert in the line-number because if we simply append the accept rule will have precendence
+We use the conntrack module because we only want to see new connections
+--set creates or updates our list
+
+And now all we have to do is to set up a rule that drops traffic 
+
+$ iptables -t filter -I INPUT 5 -p tcp  --dport 22 -m conntrack --ctstate NEW -m recent 
+    --name ssh-list --update --seconds 60 --hitcount 6 -j DROP -m comment --comment "drop excessive ssh attempts"
+--update says if you see the same IP update the last time you saw it and block it until --seconds and we are going to block it after 
+--hitcount 6 attempts.
