@@ -1,0 +1,119 @@
+RAID (Reduntant Array of Independent Disks)
+
+In Raid setup the data is copied on multiple disks. So that in the event of a Disk failure the data can be saved.
+
+THere are 4 types of RAID
+- RAID 0
+- RAID 1
+- RAID 5
+- RAID 10
+
+RAID 0 is not fault tolerant. RAID 0 should not even called RAID, it does not prevent data-tolerance. It increases the chances of data loss. 
+The data is not duplicatedc but is actually spread over 2 disks. So if one of these 2 disks failed, all the data will be lost. The only reason why
+you would like to use raid 0 is that accessing data is much faster. 
+
+RAID 1 is fault tolerant. In RAID 1 set up the data is copied on more than one disk. So disk2 will have the same copy of the data as disk1.
+
+RAID 5. In order to use RAID 5 you need to have 3 or more disks. Is fast and it can stores a large amount of data.
+In RAID 5 the data is spread across 2 disks and in the 3rd disk is saved an information called parity. Parity is used to rebuild data in case 
+of disk failure.
+The downside of disk 5 is that since the equivalent of an entire disk is used to store parity, it reduce the collective amount of data that can be stored
+in this Array. 
+An Array of 4 disks with 1 terabity each, only 3 terabytes will be used. Because the equivalent of one entire disk will be used to store parity.
+
+RAID 10 is what the name said it combines RAID 1 and RAID 0 togheter. You need to have at least 4 disk. 
+The 4 disks are divided in set of 2. A raid 0 is used before these 2 sets and a raid 1 is used in each of this 2 sets. So the information is spread
+amongs the set and every piece of information is duplicated among 2 disk.
+So RAID 10 benefits for the fault tolerance of RAID 1 and the speed of RAID 0. 
+The downside is that you can use only 50% of the capacity for data storage. So if you use 4 disks you can only use 2 of them for actual storage. 
+
+
+USE mdadm TO CREATE RAID
+
+We have the following situation
+$ lsblk
+NAME             TYPE    MOUNTPOINT
+sda              disk  
+|_sda1           part    [SWAP]
+|_sda2           part    /var/log
+|_sda3           part    /home
+sdb              disk
+sdc              disk 
+sdd              disk
+sde              disk     
+sdf              disk 
+sr0              rom                
+
+Then we use 
+
+$ fdisk <device-name>
+
+to create different partitions
+
+$ lsblk
+NAME             TYPE    MOUNTPOINT
+sda              disk  
+|_sda1           part    [SWAP]
+|_sda2           part    /var/log
+|_sda3           part    /home
+sdb              disk
+|_sdb1           part
+sdc              disk
+|_sdc1           part 
+sdd              disk
+|_sdd1           part
+sde              disk\
+|_sde1           part     
+sdf              disk
+|_sdf1           part 
+sr0              rom 
+
+Now we can create a raid of level 5
+$ mdadm --create --level 5 --raid-device 5 /dev/md0 /dev/sdb1 /dev/sdc1 /dev/sdd1 /dev/sde1 /dev/sdf1 --spare-devices=0
+
+/dev/md0 raid is this device go through. 
+mdam --detail --scan > /etc/mdadm.conf 
+
+To check if everything is properly settled.
+
+$ lsblk
+NAME             TYPE    MOUNTPOINT
+sda              disk  
+|_sda1           part    [SWAP]
+|_sda2           part    /var/log
+|_sda3           part    /home
+sdb              disk
+|_sdb1           part
+  |_md0          raid5
+sdc              disk
+|_sdc1           part 
+  |_md0          raid5
+sdd              disk
+|_sdd1           part
+  |_md0          raid5
+sde              disk
+|_sde1           part
+  |_md0          raid5     
+sdf              disk
+|_sdf1           part 
+  |_md0          raid5
+sr0              rom 
+
+You see that everything is now connected through md0 into a RAID.
+
+Now let's test it:
+$ mkdir -p /mnt/raid1
+
+Now we have to create the fileSystem because right now we create the raid but not the filesystem upon it
+
+$ mkfs.ext4 /dev/md0
+
+And not mount it
+
+$ mount /dev/md0 /mnt/raid1
+
+Save it in the /etc/fstab so it can be mounted during reboot and make it persistent. 
+
+...
+/dev/mod0 /mnt/raid1 ext4 defaults 0 0 
+...
