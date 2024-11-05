@@ -1,0 +1,42 @@
+SQUID PROXY SERVER 
+
+A proxy server is a server on my netwrok that other computers connect to to go out on the internet. They were created before NAT. With NAT each
+computer does not need a proxy server but it can goes out directly to the internet. 
+
+Squid proxy server is simply an open-source version that can be installed on a Linux server. 
+Proxy server can be usefult todays because they can have a lot of different features for our network. 
+
+The main feature a proxy server can gives you is CACHE
+Another really important feature is ACL (access control list). Image having one proxy server connected to different empolyees, you want to select
+which sites they want to access. 
+
+Another feature really useful (If you don't have a hotspot) is to configure a proxy server at your home and then bypass a webfilter by connecting
+to the proxy at your home. 
+Then you configure your browser (internet explorer to use that proxy to connect to the outside. ). My proxy server will be an IP address 192.168.1.1
+Then it has a port (3128, which is the default one).
+
+There is also something called a transparent proxy server. A transparent proxy server means that there is no configuration that the end user 
+needs to do, in this case the proxy server act as a default gateway .
+
+So back to squid. 
+The most importat things you need to do in every Linux distribution is:
+- Install squid
+- Being able to edit the squid.conf file (this can change from one Linux distribution to another )
+- Restart squid proxy server
+
+On debian
+$ apt install squid
+
+$ vi /etc/squid3/squid.conf 
+
+The squid configuration file is overwhelming but in general they piled the man page and the configuration file and did a nasty mash into one obnoxiously 
+long file. 
+Now you configure your browser to use this proxy to connect to the internet.
+Now if you try tO access for example cnn.com you receive an access denied error. You need to change the squid configuration file 
+to be able to access cnn.com.
+
+To do this you have to add a new http_access. You have to look for 
+    http_access deny all
+
+And you have to add rules ABOVE this one.
+
