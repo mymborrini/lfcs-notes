@@ -45,3 +45,7 @@ To lock root account
 $ sudo passwd --lock root === sudo passwd -l root
 
 Make sure to only lock rqoot if your user can use sudo commands. With no root login and no sudo you find yourseld in the situation of not being able to become root at all, effectively locking yourself.
+
+To switch to a user and execute a command
+
+$ su - mary -c 'find /home/mary/ -type d -empty -delete'
